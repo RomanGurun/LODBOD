@@ -112,7 +112,7 @@ fresh across runs.
 lib/
 ├── core/           constants, theme, router, errors, extensions, validators
 ├── domain/         entities, enums, repository interfaces, business rules
-├── data/           DTO models, seed data, mock repositories
+├── data/           DTO models, seed data, mock and HTTP repositories
 ├── features/       auth, dashboard, shipments, bids, create, analytics, account
 └── shared/         provider wiring, reusable widgets (badges, states, skeletons)
 ```
@@ -124,21 +124,45 @@ lib/
 - **Navigation:** `go_router` with an auth redirect and a stateful shell.
   Detail routes are nested under `/shipments/:id`.
 - **Data:** `IShipmentRepository` / `IAuthRepository` interfaces are injected
-  through `lib/shared/providers/repository_providers.dart`. The current
-  implementations are in-memory mocks.
+  through `lib/shared/providers/repository_providers.dart`. Shipments use the
+  in-memory mock by default and switch to `ApiShipmentRepository` when
+  `API_BASE_URL` is provided. Auth is always the in-memory mock.
 - **Writing:** only the notifier writes shipment state. `createShipment` and
   `acceptBid` return the repository result and update central state from it;
   there are no optimistic updates.
 
-## Replacing the mock data source
+## Hosted mock API (mockapi.io)
+
+`ApiShipmentRepository` in `lib/data/remote/` already implements the REST
+contract with Dio. The local mock stays the default so the app runs offline.
+
+Seed or reset the hosted project:
+
+```bash
+API_BASE_URL=https://6af2103d42c6561ced38f683.mockapi.io \
+  ./scripts/seed_mockapi.sh
+```
+
+The script deletes existing rows, inserts the four shipments, reads the
+generated LOD-1002 id, and inserts its two bids. Run it again before each demo
+to reset accepted bids and the 3-active count.
+
+Run against the hosted API:
+
+```bash
+flutter run -d <android-device> \
+  --dart-define=API_BASE_URL=https://6af2103d42c6561ced38f683.mockapi.io
+```
+
+Without the define, the app uses `MockShipmentRepository`. Tests also override
+the provider with the mock. For a different mockapi project, change
+`API_BASE_URL`; resource names must be `shipments` and `bids`.
+
+## Replacing the data source
 
 Implement `IShipmentRepository` (and optionally `IAuthRepository`), then change
 the provider in `lib/shared/providers/repository_providers.dart`. Screens and
-notifiers do not import the concrete mock classes.
-
-The in-memory API was chosen over a hosted mock service so the demo runs
-offline and deterministically. `docs/PLAN.md` contains the original REST shape
-if a network repository is added later.
+notifiers do not import the concrete repository classes.
 
 ## Verify
 
