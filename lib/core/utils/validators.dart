@@ -8,6 +8,15 @@ class Validators {
     return null;
   }
 
+  static String? email(String? value) {
+    if (value == null || value.trim().isEmpty) return AppStrings.fieldRequired;
+    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+        .hasMatch(value.trim())) {
+      return AppStrings.invalidEmail;
+    }
+    return null;
+  }
+
   static String? emailOrPhone(String? value) {
     if (value == null || value.trim().isEmpty) return AppStrings.fieldRequired;
     final v = value.trim();

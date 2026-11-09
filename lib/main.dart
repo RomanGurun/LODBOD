@@ -14,16 +14,17 @@ Future<void> main() async {
   runApp(const ProviderScope(child: LodbodApp()));
 }
 
-class LodbodApp extends StatelessWidget {
+class LodbodApp extends ConsumerWidget {
   const LodbodApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'LODBOD',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      routerConfig: appRouter,
+      routerConfig: router,
     );
   }
 }

@@ -1,6 +1,18 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../domain/entities/auth_user.dart';
+import '../../features/account/screens/account_screen.dart';
+import '../../features/analytics/screens/analytics_screen.dart';
+import '../../features/auth/providers/auth_notifier.dart';
+import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/splash_screen.dart';
+import '../../features/create/screens/create_shipment_screen.dart';
+import '../../features/dashboard/screens/dashboard_screen.dart';
+import '../../features/home/screens/main_shell.dart';
+import '../../features/shipments/screens/shipment_detail_screen.dart';
+import '../../features/shipments/screens/shipments_screen.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -12,15 +24,117 @@ class AppRoutes {
   static const String postLoad = '/post-load';
   static const String analytics = '/analytics';
   static const String account = '/account';
+
+  static String shipmentDetail(String id) => '$shipments/$id';
 }
 
-final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.splash,
-  routes: <RouteBase>[
-    GoRoute(
-      path: AppRoutes.splash,
-      name: 'splash',
-      builder: (context, state) => const SplashScreen(),
-    ),
-  ],
-);
+final routerProvider = Provider<GoRouter>((ref) {
+  final refresh =
+      ValueNotifier<AsyncValue<AuthUser?>>(const AsyncLoading<AuthUser?>());
+
+  ref.listen<AsyncValue<AuthUser?>>(authNotifierProvider, (previous, next) {
+    refresh.value = next;
+  });
+
+  final router = GoRouter(
+    initialLocation: AppRoutes.splash,
+    refreshListenable: refresh,
+    redirect: (context, state) {
+      final auth = ref.read(authNotifierProvider);
+      final location = state.matchedLocation;
+      final onSplash = location == AppRoutes.splash;
+      final onLogin = location == AppRoutes.login;
+
+      if (auth.isLoading) {
+        return onSplash ? null : AppRoutes.splash;
+      }
+
+      final user = auth.valueOrNull;
+      if (user == null) {
+        return onLogin ? null : AppRoutes.login;
+      }
+
+      if (onSplash || onLogin) return AppRoutes.home;
+      return null;
+    },
+    routes: <RouteBase>[
+      GoRoute(
+        path: AppRoutes.splash,
+        name: 'splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            MainShell(navigationShell: navigationShell),
+        branches: <StatefulShellBranch>[
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.home,
+                name: 'dashboard',
+                builder: (context, state) => const DashboardScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.shipments,
+                name: 'shipments',
+                builder: (context, state) => const ShipmentsScreen(),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: ':id',
+                    name: 'shipmentDetail',
+                    builder: (context, state) => ShipmentDetailScreen(
+                      shipmentId: state.pathParameters['id'] ?? '',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.postLoad,
+                name: 'postLoad',
+                builder: (context, state) => const CreateShipmentScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.analytics,
+                name: 'analytics',
+                builder: (context, state) => const AnalyticsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.account,
+                name: 'account',
+                builder: (context, state) => const AccountScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+
+  ref.onDispose(() {
+    refresh.dispose();
+    router.dispose();
+  });
+
+  return router;
+});
