@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Gradle / Firebase CLI artifacts
+/android/build/
+/firebase-debug.log
+/.firebase/

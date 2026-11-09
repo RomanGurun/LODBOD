@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "69377495679",
+    "project_id": "lodbod-shipper",
+    "storage_bucket": "lodbod-shipper.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:69377495679:android:e0e39286f6822fd1cfa54a",
+        "android_client_info": {
+          "package_name": "com.example.lodbod"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDD7rcPlm8brhtvDt6hS9t2fCGEj32ZOjU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
