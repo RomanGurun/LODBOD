@@ -20,11 +20,56 @@ void main() {
     );
   });
 
-  test('rejects identical pickup and destination cities', () {
-    final draft = validDraft().copyWith(destinationCity: 'Kathmandu');
+  test('rejects a blank pickup address', () {
+    final draft = validDraft().copyWith(pickupAddress: '   ');
     expect(
       () => ShipmentValidation.validate(draft),
       throwsA(isA<ValidationException>()),
+    );
+  });
+
+  test('rejects a blank destination city', () {
+    final draft = validDraft().copyWith(destinationCity: '   ');
+    expect(
+      () => ShipmentValidation.validate(draft),
+      throwsA(isA<ValidationException>()),
+    );
+  });
+
+  test('rejects a blank destination address', () {
+    final draft = validDraft().copyWith(destinationAddress: '   ');
+    expect(
+      () => ShipmentValidation.validate(draft),
+      throwsA(isA<ValidationException>()),
+    );
+  });
+
+  test('rejects a blank cargo description', () {
+    final draft = validDraft().copyWith(cargoDescription: '   ');
+    expect(
+      () => ShipmentValidation.validate(draft),
+      throwsA(isA<ValidationException>()),
+    );
+  });
+
+  test('rejects identical pickup and destination cities case-insensitively',
+      () {
+    final draft = validDraft().copyWith(destinationCity: '  kathmandu ');
+    expect(
+      () => ShipmentValidation.validate(draft),
+      throwsA(isA<ValidationException>()),
+    );
+  });
+
+  test('allows a pickup time within the one-hour grace period', () {
+    final clock = DateTime(2026, 1, 10, 12);
+    final draft = validDraft(now: clock).copyWith(
+      pickupAt: clock.subtract(const Duration(minutes: 30)),
+    );
+
+    expect(
+      () => ShipmentValidation.validate(draft, now: clock),
+      returnsNormally,
     );
   });
 
