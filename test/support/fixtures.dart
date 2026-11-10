@@ -1,5 +1,7 @@
+import 'package:lodbod/domain/entities/bid.dart';
 import 'package:lodbod/domain/entities/create_shipment_draft.dart';
 import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/bid_status.dart';
 import 'package:lodbod/domain/enums/shipment_status.dart';
 
 Shipment buildShipment({
@@ -43,5 +45,27 @@ CreateShipmentDraft validDraft({DateTime? now}) {
     weightUnit: 'tonnes',
     vehicleType: 'truck_10w',
     pickupAt: clock.add(const Duration(days: 5)),
+  );
+}
+
+Bid buildBid({
+  String id = 'b1',
+  String shipmentId = '1',
+  BidStatus status = BidStatus.pending,
+  double fare = 18000,
+}) {
+  final now = DateTime.now();
+  return Bid(
+    id: id,
+    shipmentId: shipmentId,
+    carrierName: 'Himalayan Freight',
+    carrierRating: 4.8,
+    carrierVerified: true,
+    fare: fare,
+    etaDays: 2,
+    estimatedDeliveryAt: now.add(const Duration(days: 2)),
+    message: 'Ready to pick up tomorrow.',
+    status: status,
+    createdAt: now,
   );
 }

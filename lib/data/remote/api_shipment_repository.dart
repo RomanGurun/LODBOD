@@ -7,6 +7,7 @@ import '../../domain/entities/shipment.dart';
 import '../../domain/enums/bid_status.dart';
 import '../../domain/enums/shipment_status.dart';
 import '../../domain/repositories/i_shipment_repository.dart';
+import '../../domain/rules/bid_acceptance_rule.dart';
 import '../../domain/rules/shipment_validation.dart';
 import '../models/bid_model.dart';
 import '../models/shipment_model.dart';
@@ -164,15 +165,10 @@ class ApiShipmentRepository implements IShipmentRepository {
       }
 
       final acceptedBid = matches.first;
-      if (acceptedBid.status != BidStatus.pending.wire) {
-        throw const ConflictException('This bid has already been processed.');
-      }
-      if (ShipmentStatus.fromWire(shipment.status) !=
-          ShipmentStatus.awaitingBids) {
-        throw const ConflictException(
-          'This shipment is no longer awaiting bids.',
-        );
-      }
+      BidAcceptanceRule.ensureCanAccept(
+        shipment.toEntity(),
+        acceptedBid.toEntity(),
+      );
 
       final updatedAt = DateTime.now();
       var shipmentPatched = false;

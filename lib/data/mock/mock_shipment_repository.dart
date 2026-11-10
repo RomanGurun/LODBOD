@@ -5,6 +5,7 @@ import '../../domain/entities/shipment.dart';
 import '../../domain/enums/bid_status.dart';
 import '../../domain/enums/shipment_status.dart';
 import '../../domain/repositories/i_shipment_repository.dart';
+import '../../domain/rules/bid_acceptance_rule.dart';
 import '../../domain/rules/shipment_validation.dart';
 import '../models/bid_model.dart';
 import '../models/shipment_model.dart';
@@ -125,16 +126,11 @@ class MockShipmentRepository implements IShipmentRepository {
     if (bidIndex == -1) throw const NotFoundException('Bid not found.');
 
     final acceptedBid = _bids[bidIndex];
-    if (acceptedBid.status != BidStatus.pending.wire) {
-      throw const ConflictException('This bid has already been processed.');
-    }
-
     final shipment = _shipments[shipmentIndex];
-    if (ShipmentStatus.fromWire(shipment.status) !=
-        ShipmentStatus.awaitingBids) {
-      throw const ConflictException(
-          'This shipment is no longer awaiting bids.');
-    }
+    BidAcceptanceRule.ensureCanAccept(
+      shipment.toEntity(),
+      acceptedBid.toEntity(),
+    );
 
     for (var i = 0; i < _bids.length; i++) {
       final candidate = _bids[i];
