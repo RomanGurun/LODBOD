@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_strings.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/utils/validators.dart';
 import '../../../shared/widgets/app_logo.dart';
@@ -184,7 +186,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const _OrDivider(),
                         const SizedBox(height: 12),
                         OutlinedButton(
-                          onPressed: _showCreateAccount,
+                          onPressed: () => context.push(AppRoutes.register),
                           child: const Text('Create a shipper account'),
                         ),
                         const Spacer(),
@@ -219,26 +221,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         content: Text(
           'Password reset is not available in this demo.\n\n'
           'Use ${AppStrings.demoEmail} with password '
-          '${AppStrings.demoPassword}.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text(AppStrings.gotIt),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showCreateAccount() {
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Create a shipper account'),
-        content: Text(
-          'Registration is handled on the LODBOD web platform.\n\n'
-          'For this demo, sign in with ${AppStrings.demoEmail} / '
           '${AppStrings.demoPassword}.',
         ),
         actions: [

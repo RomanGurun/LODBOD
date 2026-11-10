@@ -7,6 +7,17 @@ extension DateTimeExt on DateTime {
 
   String formatShort() => DateFormat('dd MMM').format(this);
 
+  String formatShortWithTime() => DateFormat('dd MMM, HH:mm').format(this);
+
+  String timeAgo() {
+    final difference = DateTime.now().difference(this);
+    if (difference.inSeconds < 45) return 'Just now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes} min ago';
+    if (difference.inHours < 24) return '${difference.inHours}h ago';
+    if (difference.inDays < 7) return '${difference.inDays}d ago';
+    return formatShort();
+  }
+
   String formatApi() => toIso8601String();
 
   bool get isPast => isBefore(DateTime.now());

@@ -30,6 +30,7 @@ void main() {
     expect(stats.active, 2);
     expect(stats.awaitingBids, 1);
     expect(stats.completed, 2);
+    expect(stats.delivered, 1);
 
     final counts = container.read(shipmentStatusCountsProvider).requireValue;
     expect(counts[ShipmentStatus.inTransit], 1);
@@ -38,19 +39,6 @@ void main() {
     expect(counts[ShipmentStatus.cancelled], 1);
     expect(counts[ShipmentStatus.scheduled], 0);
     expect(counts[ShipmentStatus.open], 0);
-  });
-
-  test('recentShipmentsProvider returns at most three shipments', () async {
-    final container = buildContainer();
-    await container.read(shipmentNotifierProvider.future);
-
-    final recent = container.read(recentShipmentsProvider).requireValue;
-
-    expect(recent, hasLength(3));
-    expect(
-      recent.map((shipment) => shipment.reference),
-      ['LOD-1004', 'LOD-1002', 'LOD-1001'],
-    );
   });
 
   test('filteredShipmentsProvider matches query and status', () async {
@@ -83,7 +71,7 @@ void main() {
     expect(shipment?.reference, 'LOD-1002');
 
     final bids = container.read(shipmentBidsProvider('2')).requireValue;
-    expect(bids, hasLength(2));
+    expect(bids, hasLength(3));
 
     final missing = container.read(shipmentByIdProvider('nope')).requireValue;
     expect(missing, isNull);

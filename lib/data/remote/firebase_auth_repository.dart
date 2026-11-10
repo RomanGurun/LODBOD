@@ -175,7 +175,19 @@ class FirebaseAuthRepository implements IAuthRepository {
     if (_isUnavailable(error)) {
       return 'Authentication service is unavailable. Try again.';
     }
-    return AppStrings.invalidCredentials;
+    switch (error.code) {
+      case 'email-already-in-use':
+        return 'An account with this email already exists.';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      case 'invalid-email':
+        return 'Please enter a valid email address.';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+      default:
+        return AppStrings.invalidCredentials;
+    }
   }
 
   void dispose() => _controller.close();

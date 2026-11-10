@@ -55,6 +55,9 @@ verified for this submission.
 - Splash with auth-state redirect.
 - Login with validation, password visibility, loading state, error message,
   and demo-account shortcut.
+- Registration ("Create a shipper account") with full validation that creates
+  the account through Firebase Auth (mock fallback when Email/Password is not
+  enabled), sets the display name, and signs the new shipper straight in.
 - Five-tab shell: Dashboard, Shipments, Post Load, Analytics, Account.
 - Dashboard KPI cards and recent shipments driven by the same shipment list.
 - Shipment list with text search (reference/route/cities), status chips,
@@ -188,9 +191,11 @@ validation plus both the success and limit dialogs.
 
 ## Limitations
 
-- Firebase Auth is wired but real sign-in requires Email/Password to be
-  enabled in the Firebase console; otherwise the demo mock fallback is used.
-  OTP and sign-up screens are not implemented.
+- Firebase Auth is wired for sign-in and sign-up; real accounts require
+  Email/Password to be enabled in the Firebase console, otherwise the demo
+  mock fallback is used. Phone/company fields on registration are collected
+  for the form only — Firebase Auth stores email, password and display name.
+  OTP screens are not implemented.
 - Local/mock data is in-memory and resets when the process restarts; hosted
   mockapi data persists until the seed script is run again.
 - Analytics is computed locally from the current list; no historical trends,

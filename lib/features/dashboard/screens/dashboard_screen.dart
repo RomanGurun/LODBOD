@@ -6,278 +6,310 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/router/app_router.dart';
-import '../../../domain/entities/shipment.dart';
-import '../../../shared/widgets/skeletons.dart';
+import '../../../domain/rules/shipment_limit_rule.dart';
+import '../../../shared/widgets/shipment_card.dart';
 import '../../../shared/widgets/state_views.dart';
-import '../../../shared/widgets/status_badge.dart';
 import '../../auth/providers/auth_notifier.dart';
 import '../../shipments/providers/shipment_notifier.dart';
 import '../../shipments/providers/shipment_providers.dart';
+import '../providers/dashboard_providers.dart';
+import '../widgets/dashboard_action_card.dart';
+import '../widgets/dashboard_hero_card.dart';
+import '../widgets/dashboard_next_pickup_card.dart';
+import '../widgets/dashboard_skeleton.dart';
+import '../widgets/dashboard_stat_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authNotifierProvider).valueOrNull;
     final stats = ref.watch(dashboardStatsProvider);
-    final recent = ref.watch(recentShipmentsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.dashboard),
-        actions: [
-          IconButton(
-            tooltip: AppStrings.postLoad,
-            onPressed: () => context.go(AppRoutes.postLoad),
-            icon: const Icon(Icons.add_box_outlined),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: stats.when(
+          loading: () => const DashboardSkeleton(),
+          error: (error, _) => ErrorState(
+            message: error.toString(),
+            onRetry: () =>
+                ref.read(shipmentNotifierProvider.notifier).refresh(),
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => ref.read(shipmentNotifierProvider.notifier).refresh(),
-        child: ListView(
-          padding: const EdgeInsets.all(AppSizes.screenHorizontal),
-          children: [
-            Text(
-              _greeting(),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-            ),
-            const SizedBox(height: AppSizes.xs),
-            Text(
-              user?.displayName ?? 'Shipper',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: AppSizes.lg),
-            stats.when(
-              loading: () => const _StatsLoading(),
-              error: (error, _) => ErrorState(
-                message: error.toString(),
-                onRetry: () =>
-                    ref.read(shipmentNotifierProvider.notifier).refresh(),
-              ),
-              data: (value) => Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      label: AppStrings.activeShipments,
-                      value: value.active,
-                      icon: Icons.local_shipping_outlined,
-                      color: AppColors.statusInTransit,
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.sm),
-                  Expanded(
-                    child: _StatCard(
-                      label: AppStrings.awaitingBids,
-                      value: value.awaitingBids,
-                      icon: Icons.gavel_outlined,
-                      color: AppColors.statusAwaitingBids,
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.sm),
-                  Expanded(
-                    child: _StatCard(
-                      label: AppStrings.completedShipments,
-                      value: value.completed,
-                      icon: Icons.check_circle_outline,
-                      color: AppColors.statusDelivered,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSizes.lg),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  AppStrings.recentShipments,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                TextButton(
-                  onPressed: () => context.go(AppRoutes.shipments),
-                  child: const Text(AppStrings.seeAll),
-                ),
-              ],
-            ),
-            recent.when(
-              loading: () => const Column(
-                children: [
-                  ShimmerBox(
-                    width: double.infinity,
-                    height: 64,
-                    radius: AppSizes.radiusMd,
-                  ),
-                  SizedBox(height: AppSizes.sm),
-                  ShimmerBox(
-                    width: double.infinity,
-                    height: 64,
-                    radius: AppSizes.radiusMd,
-                  ),
-                ],
-              ),
-              error: (error, _) => ErrorState(message: error.toString()),
-              data: (shipments) => shipments.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: AppSizes.lg),
-                      child: EmptyState(
-                        title: AppStrings.noShipmentsFound,
-                        subtitle: AppStrings.noShipmentsSubtitle,
-                      ),
-                    )
-                  : Column(
-                      children: shipments
-                          .map((shipment) => _RecentTile(shipment: shipment))
-                          .toList(),
-                    ),
-            ),
-            const SizedBox(height: AppSizes.lg),
-            FilledButton.icon(
-              onPressed: () => context.go(AppRoutes.postLoad),
-              icon: const Icon(Icons.add),
-              label: const Text(AppStrings.postLoad),
-            ),
-          ],
+          data: (value) => _DashboardContent(stats: value),
         ),
       ),
     );
   }
+}
 
-  String _greeting() {
+class _DashboardContent extends ConsumerWidget {
+  const _DashboardContent({required this.stats});
+
+  final DashboardStats stats;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authNotifierProvider).valueOrNull;
+    final recent = ref.watch(recentShipmentsProvider).valueOrNull ?? const [];
+    final action = ref.watch(actionRequiredShipmentProvider).valueOrNull;
+    final nextPickup = ref.watch(nextPickupShipmentProvider).valueOrNull;
+    final name = user?.displayName ?? '';
+
+    if (stats.total == 0) {
+      return const EmptyState(
+        title: AppStrings.noShipmentsFound,
+        subtitle: AppStrings.noShipmentsSubtitle,
+      );
+    }
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () => ref.read(shipmentNotifierProvider.notifier).refresh(),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.screenHorizontal,
+          5,
+          AppSizes.screenHorizontal,
+          30,
+        ),
+        children: <Widget>[
+          _GreetingRow(
+            name: name,
+            onBellTap: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                behavior: SnackBarBehavior.floating,
+                content: Text(AppStrings.noNotifications),
+              ),
+            ),
+          ),
+          const SizedBox(height: 30),
+          DashboardHeroCard(
+            used: stats.active,
+            limit: ShipmentLimitRule.maxActiveShipments,
+            onPostLoad: () => context.go(AppRoutes.postLoad),
+          ),
+          const SizedBox(height: 11),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: DashboardStatCard(
+                  value: stats.active,
+                  label: AppStrings.activeShipments,
+                  icon: Icons.local_shipping,
+                  iconColor: AppColors.primary,
+                  iconBackground: AppColors.statusActiveBg,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DashboardStatCard(
+                  value: stats.awaitingBids,
+                  label: AppStrings.pendingShipments,
+                  icon: Icons.hourglass_empty,
+                  iconColor: AppColors.statusOpen,
+                  iconBackground: AppColors.statusOpenBg,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DashboardStatCard(
+                  value: stats.delivered,
+                  label: AppStrings.completedShipments,
+                  icon: Icons.check_circle,
+                  iconColor: AppColors.statusDelivered,
+                  iconBackground: AppColors.statusDeliveredBg,
+                ),
+              ),
+            ],
+          ),
+          if (action != null) ...<Widget>[
+            const SizedBox(height: 19),
+            Text(
+              AppStrings.needsYourAction,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 14),
+            DashboardActionCard(
+              title:
+                  '${action.bidCount} ${AppStrings.newBidsOn} ${action.reference}',
+              subtitle: '${action.routeLabel} • ${AppStrings.biddingOpen}',
+              onTap: () => context.go(AppRoutes.shipmentDetail(action.id)),
+            ),
+          ],
+          const SizedBox(height: 17),
+          Row(
+            children: <Widget>[
+              Text(
+                AppStrings.recentShipments,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontSize: 15),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => context.go(AppRoutes.shipments),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(64, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  AppStrings.seeAll,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          for (final shipment in recent) ...<Widget>[
+            ShipmentCard(
+              shipment: shipment,
+              onTap: () => context.go(AppRoutes.shipmentDetail(shipment.id)),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (nextPickup != null) ...<Widget>[
+            const SizedBox(height: 9),
+            DashboardNextPickupCard(
+              shipment: nextPickup,
+              onDetails: () =>
+                  context.go(AppRoutes.shipmentDetail(nextPickup.id)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _GreetingRow extends StatelessWidget {
+  const _GreetingRow({required this.name, required this.onBellTap});
+
+  final String name;
+  final VoidCallback onBellTap;
+
+  String get _greeting {
     final hour = DateTime.now().hour;
     if (hour < 12) return AppStrings.goodMorning;
     if (hour < 17) return AppStrings.goodAfternoon;
     return AppStrings.goodEvening;
   }
-}
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  final String label;
-  final int value;
-  final IconData icon;
-  final Color color;
+  String get _initials {
+    final parts =
+        name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '';
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
+    }
+    return '${parts.first.substring(0, 1)}${parts[1].substring(0, 1)}'
+        .toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: AppSizes.iconMd),
-          const SizedBox(height: AppSizes.sm),
-          Text(
-            '$value',
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w700),
+    final textTheme = Theme.of(context).textTheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          width: 38,
+          height: 38,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppColors.primary,
+            shape: BoxShape.circle,
           ),
-          const SizedBox(height: AppSizes.xs),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          child: Text(
+            _initials,
+            style: textTheme.titleSmall?.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textOnPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Padding(
+          padding: const EdgeInsets.only(top: 15),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                _greeting,
+                style: textTheme.bodySmall?.copyWith(
+                  fontSize: 13,
                   color: AppColors.textSecondary,
                 ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatsLoading extends StatelessWidget {
-  const _StatsLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: List<Widget>.generate(3, (index) {
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: index == 2 ? 0 : AppSizes.sm),
-            child: const ShimmerBox(
-              height: 108,
-              radius: AppSizes.radiusMd,
-            ),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _RecentTile extends StatelessWidget {
-  const _RecentTile({required this.shipment});
-
-  final Shipment shipment;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSizes.sm),
-      child: Material(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-          onTap: () => context.go(AppRoutes.shipmentDetail(shipment.id)),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSizes.md),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.local_shipping_outlined,
-                  color: AppColors.primary,
-                  size: AppSizes.iconMd,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(width: AppSizes.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        shipment.reference,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: AppSizes.xs),
-                      Text(
-                        shipment.routeLabel,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                    ],
+              ),
+            ],
+          ),
+        ),
+        const Spacer(),
+        _BellButton(onTap: onBellTap),
+      ],
+    );
+  }
+}
+
+class _BellButton extends StatelessWidget {
+  const _BellButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      shape: const CircleBorder(
+        side: BorderSide(color: AppColors.border, width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          width: 38,
+          height: 38,
+          child: Stack(
+            children: <Widget>[
+              Center(
+                child: Icon(
+                  Icons.notifications_none,
+                  size: 19,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Positioned(
+                top: 17,
+                right: 3,
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: AppSizes.sm),
-                StatusBadge(status: shipment.status),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

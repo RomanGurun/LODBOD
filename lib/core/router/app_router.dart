@@ -7,8 +7,11 @@ import '../../features/account/screens/account_screen.dart';
 import '../../features/analytics/screens/analytics_screen.dart';
 import '../../features/auth/providers/auth_notifier.dart';
 import '../../features/auth/screens/login_screen.dart';
+import '../../features/auth/screens/otp_screen.dart';
+import '../../features/auth/screens/registration_screen.dart';
 import '../../features/auth/screens/splash_screen.dart';
 import '../../features/create/screens/create_shipment_screen.dart';
+import '../../features/create/screens/order_placed_screen.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/home/screens/main_shell.dart';
 import '../../features/shipments/screens/shipment_detail_screen.dart';
@@ -19,9 +22,12 @@ class AppRoutes {
 
   static const String splash = '/';
   static const String login = '/login';
+  static const String register = '/register';
+  static const String otp = '/otp';
   static const String home = '/home';
   static const String shipments = '/shipments';
   static const String postLoad = '/post-load';
+  static const String orderPlaced = '/order-placed';
   static const String analytics = '/analytics';
   static const String account = '/account';
 
@@ -44,6 +50,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final location = state.matchedLocation;
       final onSplash = location == AppRoutes.splash;
       final onLogin = location == AppRoutes.login;
+      final onRegister = location == AppRoutes.register;
+      final onOtp = location == AppRoutes.otp;
+      final onAuthFlow = onSplash || onLogin || onRegister || onOtp;
 
       if (auth.isLoading) {
         return onSplash ? null : AppRoutes.splash;
@@ -51,10 +60,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final user = auth.valueOrNull;
       if (user == null) {
-        return onLogin ? null : AppRoutes.login;
+        // Allow access to registration & OTP even when logged out.
+        if (onLogin || onRegister || onOtp) return null;
+        return AppRoutes.login;
       }
 
-      if (onSplash || onLogin) return AppRoutes.home;
+      if (onAuthFlow) return AppRoutes.home;
       return null;
     },
     routes: <RouteBase>[
@@ -67,6 +78,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.login,
         name: 'login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.register,
+        name: 'register',
+        builder: (context, state) => const RegistrationScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.otp,
+        name: 'otp',
+        builder: (context, state) => const OtpScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.orderPlaced,
+        name: 'orderPlaced',
+        builder: (context, state) => const OrderPlacedScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>

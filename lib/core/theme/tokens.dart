@@ -50,14 +50,18 @@ class AppColors {
   static const Color statusExpired = Color(0xFF63636C);
   static const Color statusExpiredBg = Color(0xFFF1F1F4);
 
+  // Dashboard stat highlights
+  static const Color statusActiveBg = Color(0xFFFBE7E1);
+  static const Color infoBg = Color(0xFFE6F3FF);
+
   // Utility
   static const Color border = Color(0xFFE6E6EA);
   static const Color divider = Color(0xFFE6E6EA);
   static const Color error = Color(0xFFB00020);
   static const Color success = Color(0xFF399777);
   static const Color warning = Color(0xFFF0A11A);
-  static const Color shimmerBase = Color(0xFFE9E9EE);
-  static const Color shimmerHighlight = Color(0xFFF7F7F9);
+  static const Color shimmerBase = Color(0xFFE8E7EC);
+  static const Color shimmerHighlight = Color(0xFFEDEDEF);
   static const Color scrim = Color(0x66000000);
 
   // Shadows

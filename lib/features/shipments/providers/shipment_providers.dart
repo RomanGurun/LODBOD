@@ -41,12 +41,14 @@ class DashboardStats {
   final int active;
   final int awaitingBids;
   final int completed;
+  final int delivered;
   final int total;
 
   const DashboardStats({
     required this.active,
     required this.awaitingBids,
     required this.completed,
+    required this.delivered,
     required this.total,
   });
 
@@ -54,6 +56,7 @@ class DashboardStats {
     var active = 0;
     var awaiting = 0;
     var completed = 0;
+    var delivered = 0;
     var total = 0;
 
     for (final shipment in shipments) {
@@ -61,12 +64,14 @@ class DashboardStats {
       if (shipment.status.countsTowardsLimit) active++;
       if (shipment.status == ShipmentStatus.awaitingBids) awaiting++;
       if (shipment.status.isCompleted) completed++;
+      if (shipment.status == ShipmentStatus.delivered) delivered++;
     }
 
     return DashboardStats(
       active: active,
       awaitingBids: awaiting,
       completed: completed,
+      delivered: delivered,
       total: total,
     );
   }
@@ -89,12 +94,6 @@ final shipmentStatusCountsProvider =
     }
     return counts;
   });
-});
-
-final recentShipmentsProvider = Provider<AsyncValue<List<Shipment>>>((ref) {
-  return ref
-      .watch(shipmentNotifierProvider)
-      .whenData((shipments) => shipments.take(3).toList());
 });
 
 final filteredShipmentsProvider =

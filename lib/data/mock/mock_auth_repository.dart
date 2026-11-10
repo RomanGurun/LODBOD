@@ -11,7 +11,7 @@ class MockAuthRepository implements IAuthRepository {
   static const AuthUser _demoUser = AuthUser(
     id: 'demo-1',
     email: AppStrings.demoEmail,
-    displayName: 'Demo Shipper',
+    displayName: 'Aarav Shrestha',
   );
 
   final Duration latency;

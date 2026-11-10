@@ -228,32 +228,32 @@ class AppTheme {
     return base.copyWith(
       displayLarge: _style(base.displayLarge, AppTypography.display,
           FontWeight.w700, AppColors.textTitle, -0.8),
-      displayMedium: _style(base.displayMedium, 28, FontWeight.w700,
-          AppColors.textTitle, -0.6),
+      displayMedium: _style(
+          base.displayMedium, 28, FontWeight.w700, AppColors.textTitle, -0.6),
       displaySmall: _style(base.displaySmall, AppTypography.headline,
           FontWeight.w700, AppColors.textTitle, -0.4),
-      headlineMedium: _style(base.headlineMedium, 24, FontWeight.w700,
-          AppColors.textTitle, -0.3),
+      headlineMedium: _style(
+          base.headlineMedium, 24, FontWeight.w700, AppColors.textTitle, -0.3),
       headlineSmall: _style(base.headlineSmall, AppTypography.title,
           FontWeight.w700, AppColors.textTitle, -0.2),
-      titleLarge: _style(base.titleLarge, 20, FontWeight.w600,
-          AppColors.textTitle, -0.2),
+      titleLarge: _style(
+          base.titleLarge, 20, FontWeight.w600, AppColors.textTitle, -0.2),
       titleMedium: _style(base.titleMedium, AppTypography.section,
           FontWeight.w600, AppColors.textTitle, 0),
-      titleSmall: _style(base.titleSmall, AppTypography.body,
-          FontWeight.w600, AppColors.textTitle, 0),
-      bodyLarge: _style(
-          base.bodyLarge, AppTypography.body, FontWeight.w400, AppColors.textPrimary, 0),
+      titleSmall: _style(base.titleSmall, AppTypography.body, FontWeight.w600,
+          AppColors.textTitle, 0),
+      bodyLarge: _style(base.bodyLarge, AppTypography.body, FontWeight.w400,
+          AppColors.textPrimary, 0),
       bodyMedium: _style(base.bodyMedium, AppTypography.body, FontWeight.w400,
           AppColors.textPrimary, 0),
-      bodySmall: _style(
-          base.bodySmall, AppTypography.caption, FontWeight.w400, AppColors.textSecondary, 0),
-      labelLarge: _style(base.labelLarge, AppTypography.body,
-          FontWeight.w600, AppColors.textPrimary, 0),
+      bodySmall: _style(base.bodySmall, AppTypography.caption, FontWeight.w400,
+          AppColors.textSecondary, 0),
+      labelLarge: _style(base.labelLarge, AppTypography.body, FontWeight.w600,
+          AppColors.textPrimary, 0),
       labelMedium: _style(base.labelMedium, AppTypography.caption,
           FontWeight.w600, AppColors.textPrimary, 0),
-      labelSmall: _style(base.labelSmall, AppTypography.micro,
-          FontWeight.w600, AppColors.textSecondary, 0),
+      labelSmall: _style(base.labelSmall, AppTypography.micro, FontWeight.w600,
+          AppColors.textSecondary, 0),
     );
   }
 

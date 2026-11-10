@@ -25,15 +25,28 @@ class AppStrings {
 
   // Dashboard
   static const String dashboard = 'Dashboard';
-  static const String goodMorning = 'Good Morning';
-  static const String goodAfternoon = 'Good Afternoon';
-  static const String goodEvening = 'Good Evening';
+  static const String goodMorning = 'Good morning,';
+  static const String goodAfternoon = 'Good afternoon,';
+  static const String goodEvening = 'Good evening,';
   static const String activeShipments = 'Active';
+  static const String pendingShipments = 'Pending';
   static const String awaitingBids = 'Awaiting Bids';
   static const String completedShipments = 'Completed';
-  static const String recentShipments = 'Recent Shipments';
+  static const String recentShipments = 'Recent shipments';
   static const String postLoad = 'Post a Load';
-  static const String seeAll = 'See All';
+  static const String postLoadCta = '+ Post Load';
+  static const String seeAll = 'See all';
+  static const String shipSomethingNew = 'Ship something new';
+  static const String mobileRequestsUsed = 'Mobile requests used:';
+  static const String of = 'of';
+  static const String needsYourAction = 'Needs your action';
+  static const String newBidsOn = 'new bids on';
+  static const String biddingOpen = 'bidding open';
+  static const String nextPickup = 'Next pickup';
+  static const String details = 'Details';
+  static const String loadingShipments = 'Loading your shipments...';
+  static const String allCaughtUp = "You're all caught up";
+  static const String noNotifications = 'No new notifications yet';
 
   // Shipments
   static const String shipments = 'Shipments';
@@ -109,7 +122,7 @@ class AppStrings {
   static const String statusAwaitingBids = 'Awaiting Bids';
   static const String statusScheduled = 'Scheduled';
   static const String statusConfirmed = 'Confirmed';
-  static const String statusInTransit = 'In Transit';
+  static const String statusInTransit = 'In-transit';
   static const String statusDelivered = 'Delivered';
   static const String statusCancelled = 'Cancelled';
   static const String statusExpired = 'Expired';

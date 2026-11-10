@@ -10,11 +10,15 @@ class ShimmerBox extends StatelessWidget {
     this.width,
     required this.height,
     this.radius = AppSizes.radiusSm,
+    this.border = false,
+    this.child,
   });
 
   final double? width;
   final double height;
   final double radius;
+  final bool border;
+  final Widget? child;
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +28,13 @@ class ShimmerBox extends StatelessWidget {
       child: Container(
         width: width,
         height: height,
+        clipBehavior: child == null ? Clip.none : Clip.antiAlias,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(radius),
+          border: border ? Border.all(color: AppColors.border) : null,
         ),
+        child: child,
       ),
     );
   }

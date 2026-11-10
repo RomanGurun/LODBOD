@@ -12,6 +12,28 @@ class SplashScreen extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
+          // Radial glow behind logo
+          Positioned(
+            top: 301 - 80,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.primarySoft.withValues(alpha: 0.7),
+                      AppColors.primarySoft.withValues(alpha: 0.0),
+                    ],
+                    stops: const [0.0, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
           Column(
             children: [
               const SizedBox(height: 301),
@@ -40,32 +62,38 @@ class SplashScreen extends StatelessWidget {
               ),
             ],
           ),
+          // Bottom progress section
           Positioned(
             left: AppSizes.screenHorizontal,
             right: AppSizes.screenHorizontal,
             bottom: 49,
-            child: Row(
+            child: Column(
               children: [
-                const SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.6,
+                // Linear progress bar
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+                  child: const LinearProgressIndicator(
+                    minHeight: 3,
                     color: AppColors.primary,
+                    backgroundColor: AppColors.border,
                   ),
                 ),
-                const SizedBox(width: AppSizes.sm),
-                Expanded(
-                  child: Text(
-                    'Checking your session...',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-                Text(
-                  'v1.0.0',
-                  style: Theme.of(context).textTheme.bodySmall,
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Checking your session...',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    Text(
+                      'v1.0.0',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
               ],
             ),

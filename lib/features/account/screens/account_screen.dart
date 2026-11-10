@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/extensions/string_ext.dart';
+import '../../../core/theme/tokens.dart';
 import '../../auth/providers/auth_notifier.dart';
 
-class AccountScreen extends ConsumerWidget {
+class AccountScreen extends ConsumerStatefulWidget {
   const AccountScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AccountScreen> createState() => _AccountScreenState();
+}
+
+class _AccountScreenState extends ConsumerState<AccountScreen> {
+  bool _darkMode = false;
+  bool _pushNotifications = true;
+  bool _smsAlerts = false;
+  bool _emailDigest = true;
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final user = authState.valueOrNull;
     final isLoading = authState.isLoading;
@@ -20,59 +29,168 @@ class AccountScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.account)),
       body: ListView(
-        padding: const EdgeInsets.all(AppSizes.screenHorizontal),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.screenHorizontal,
+        ),
         children: [
-          const SizedBox(height: AppSizes.md),
-          Center(
-            child: CircleAvatar(
-              radius: AppSizes.avatarLg / 2 + AppSizes.sm,
-              backgroundColor: AppColors.primary,
-              child: Text(
-                displayName.initials,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.textOnPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
+          const SizedBox(height: 20),
+          // Profile card — h=70
+          _ProfileCard(
+            name: displayName,
+            initials: displayName.initials,
+            company: 'LODBOD Logistics',
+            role: 'Admin',
+          ),
+          const SizedBox(height: 30),
+
+          // ACCOUNT section — h=95
+          _SectionLabel('ACCOUNT'),
+          const SizedBox(height: 8),
+          _SettingsCard(
+            children: [
+              _SettingsTile(
+                icon: Icons.person_outline,
+                label: 'Personal information',
+                onTap: () {},
               ),
-            ),
+              const _TileDivider(),
+              _SettingsTile(
+                icon: Icons.business_outlined,
+                label: 'Company details',
+                onTap: () {},
+              ),
+              const _TileDivider(),
+              _SettingsTile(
+                icon: Icons.lock_outline,
+                label: 'Change password',
+                onTap: () {},
+              ),
+            ],
           ),
-          const SizedBox(height: AppSizes.md),
-          Text(
-            displayName,
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
+          const SizedBox(height: 24),
+
+          // PREFERENCES section — h=132
+          _SectionLabel('PREFERENCES'),
+          const SizedBox(height: 8),
+          _SettingsCard(
+            children: [
+              _SwitchTile(
+                icon: Icons.dark_mode_outlined,
+                label: 'Dark mode',
+                value: _darkMode,
+                onChanged: (v) => setState(() => _darkMode = v),
+              ),
+              const _TileDivider(),
+              _SwitchTile(
+                icon: Icons.notifications_outlined,
+                label: 'Push notifications',
+                value: _pushNotifications,
+                onChanged: (v) => setState(() => _pushNotifications = v),
+              ),
+              const _TileDivider(),
+              _SwitchTile(
+                icon: Icons.sms_outlined,
+                label: 'SMS alerts',
+                value: _smsAlerts,
+                onChanged: (v) => setState(() => _smsAlerts = v),
+              ),
+              const _TileDivider(),
+              _SwitchTile(
+                icon: Icons.email_outlined,
+                label: 'Email digest',
+                value: _emailDigest,
+                onChanged: (v) => setState(() => _emailDigest = v),
+              ),
+            ],
           ),
-          if (user != null) ...[
-            const SizedBox(height: AppSizes.xs),
-            Text(
-              user.email,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+          const SizedBox(height: 24),
+
+          // SUPPORT & FEEDBACK — h=63
+          _SectionLabel('SUPPORT & FEEDBACK'),
+          const SizedBox(height: 8),
+          _SettingsCard(
+            children: [
+              _SettingsTile(
+                icon: Icons.help_outline,
+                label: 'Help centre',
+                onTap: () {},
+              ),
+              const _TileDivider(),
+              _SettingsTile(
+                icon: Icons.feedback_outlined,
+                label: 'Send feedback',
+                onTap: () {},
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // LEGAL & SECURITY — h=63
+          _SectionLabel('LEGAL & SECURITY'),
+          const SizedBox(height: 8),
+          _SettingsCard(
+            children: [
+              _SettingsTile(
+                icon: Icons.description_outlined,
+                label: 'Terms of service',
+                onTap: () {},
+              ),
+              const _TileDivider(),
+              _SettingsTile(
+                icon: Icons.privacy_tip_outlined,
+                label: 'Privacy policy',
+                onTap: () {},
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Sign out + Delete account — side-by-side
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: OutlinedButton(
+                    onPressed:
+                        isLoading ? null : () => _confirmSignOut(context, ref),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: Size.zero,
+                      padding: EdgeInsets.zero,
+                      textStyle: const TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        fontSize: AppTypography.caption,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: const Text(AppStrings.logout),
                   ),
-            ),
-          ],
-          const SizedBox(height: AppSizes.lg),
-          const Divider(),
-          _InfoTile(
-            icon: Icons.verified_user_outlined,
-            label: 'Account type',
-            value: 'Shipper',
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: OutlinedButton(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: Size.zero,
+                      padding: EdgeInsets.zero,
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      textStyle: const TextStyle(
+                        fontFamily: AppTypography.fontFamily,
+                        fontSize: AppTypography.caption,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: const Text('Delete account'),
+                  ),
+                ),
+              ),
+            ],
           ),
-          _InfoTile(
-            icon: Icons.info_outline,
-            label: 'App version',
-            value: '1.0.0',
-          ),
-          const SizedBox(height: AppSizes.lg),
-          OutlinedButton.icon(
-            onPressed: isLoading ? null : () => _confirmSignOut(context, ref),
-            icon: const Icon(Icons.logout),
-            label: const Text(AppStrings.logout),
-          ),
+          const SizedBox(height: 30),
         ],
       ),
     );
@@ -106,28 +224,233 @@ class AccountScreen extends ConsumerWidget {
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
+// ─── Profile Card ────────────────────────────────────────────────────────────
+
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({
+    required this.name,
+    required this.initials,
+    required this.company,
+    required this.role,
+  });
+
+  final String name;
+  final String initials;
+  final String company;
+  final String role;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.primary,
+            child: Text(
+              initials,
+              style: textTheme.titleSmall?.copyWith(
+                color: AppColors.textOnPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$company • $role',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right,
+            size: 20,
+            color: AppColors.textHint,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Section Label ───────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        fontSize: 10,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.2,
+        color: AppColors.textTertiary,
+      ),
+    );
+  }
+}
+
+// ─── Settings Card (grouped) ────────────────────────────────────────────────
+
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: children,
+      ),
+    );
+  }
+}
+
+// ─── Tiles ───────────────────────────────────────────────────────────────────
+
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
     required this.icon,
     required this.label,
-    required this.value,
+    required this.onTap,
   });
 
   final IconData icon;
   final String label;
-  final String value;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-      trailing: Text(
-        value,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          height: 44,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: AppColors.textSecondary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 13,
+                        ),
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: AppColors.textHint,
+                ),
+              ],
             ),
+          ),
+        ),
       ),
+    );
+  }
+}
+
+class _SwitchTile extends StatelessWidget {
+  const _SwitchTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.textSecondary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 13,
+                    ),
+              ),
+            ),
+            SizedBox(
+              height: 24,
+              child: FittedBox(
+                child: Switch(
+                  value: value,
+                  onChanged: onChanged,
+                  activeThumbColor: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TileDivider extends StatelessWidget {
+  const _TileDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(left: 46),
+      child: Divider(height: 1),
     );
   }
 }
