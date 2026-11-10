@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 
 import '../../core/errors/app_exception.dart';
 import '../../domain/entities/bid.dart';
@@ -22,20 +21,7 @@ class ApiShipmentRepository implements IShipmentRepository {
                 receiveTimeout: const Duration(seconds: 10),
                 sendTimeout: const Duration(seconds: 10),
               ),
-            ) {
-    if (kDebugMode) {
-      _dio.interceptors.add(
-        LogInterceptor(
-          requestHeader: true,
-          requestBody: true,
-          responseHeader: false,
-          responseBody: true,
-          error: true,
-          logPrint: (object) => debugPrint(object.toString()),
-        ),
-      );
-    }
-  }
+            );
 
   final Dio _dio;
 
@@ -188,31 +174,61 @@ class ApiShipmentRepository implements IShipmentRepository {
         );
       }
 
-      final updatedAt = DateTime.now().toIso8601String();
-      await _dio.patch<dynamic>(
-        '/shipments/$shipmentId',
-        data: <String, dynamic>{
-          'status': ShipmentStatus.confirmed.wire,
-          'acceptedBidId': acceptedBid.id,
-          'assignedCarrier': acceptedBid.carrierName,
-          'updatedAt': updatedAt,
-        },
-      );
-      await _dio.patch<dynamic>(
-        '/bids/$bidId',
-        data: <String, dynamic>{'status': BidStatus.accepted.wire},
-      );
+      final updatedAt = DateTime.now();
+      var shipmentPatched = false;
+      final patchedBidStatuses = <String, String>{};
 
-      for (final bid in bids) {
-        if (bid.id == bidId) continue;
-        if (bid.status != BidStatus.pending.wire) continue;
+      try {
         await _dio.patch<dynamic>(
-          '/bids/${bid.id}',
-          data: <String, dynamic>{'status': BidStatus.rejected.wire},
+          '/shipments/$shipmentId',
+          data: <String, dynamic>{
+            'status': ShipmentStatus.confirmed.wire,
+            'acceptedBidId': acceptedBid.id,
+            'assignedCarrier': acceptedBid.carrierName,
+            'updatedAt': updatedAt.toIso8601String(),
+          },
         );
+        shipmentPatched = true;
+
+        await _patchBidStatus(bidId, BidStatus.accepted.wire);
+        patchedBidStatuses[bidId] = acceptedBid.status;
+
+        for (final bid in bids) {
+          if (bid.id == bidId) continue;
+          if (bid.status != BidStatus.pending.wire) continue;
+          await _patchBidStatus(bid.id, BidStatus.rejected.wire);
+          patchedBidStatuses[bid.id] = bid.status;
+        }
+      } catch (_) {
+        await _restoreAcceptance(
+          shipment: shipment,
+          patchedBidStatuses: patchedBidStatuses,
+          shipmentPatched: shipmentPatched,
+        );
+        rethrow;
       }
 
-      return await getShipmentById(shipmentId);
+      final updatedBids = bids.map((bid) {
+        if (bid.id == bidId) {
+          return bid.copyWith(status: BidStatus.accepted.wire);
+        }
+        if (bid.status == BidStatus.pending.wire) {
+          return bid.copyWith(status: BidStatus.rejected.wire);
+        }
+        return bid;
+      }).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      return shipment
+          .copyWith(
+            status: ShipmentStatus.confirmed.wire,
+            acceptedBidId: acceptedBid.id,
+            assignedCarrier: acceptedBid.carrierName,
+            updatedAt: updatedAt,
+          )
+          .toEntity(
+            bids: updatedBids.map((bid) => bid.toEntity()).toList(),
+          );
     } on DioException catch (error) {
       throw _mapDioError(error);
     } on FormatException {
@@ -220,6 +236,51 @@ class ApiShipmentRepository implements IShipmentRepository {
     } on TypeError {
       throw const ServerException(
         'The mock API returned an unexpected response.',
+      );
+    }
+  }
+
+  Future<void> _patchBidStatus(String bidId, String status) async {
+    await _dio.patch<dynamic>(
+      '/bids/$bidId',
+      data: <String, dynamic>{'status': status},
+    );
+  }
+
+  Future<void> _restoreAcceptance({
+    required ShipmentModel shipment,
+    required Map<String, String> patchedBidStatuses,
+    required bool shipmentPatched,
+  }) async {
+    var rollbackFailed = false;
+
+    for (final entry in patchedBidStatuses.entries) {
+      try {
+        await _patchBidStatus(entry.key, entry.value);
+      } catch (_) {
+        rollbackFailed = true;
+      }
+    }
+
+    if (shipmentPatched) {
+      try {
+        await _dio.patch<dynamic>(
+          '/shipments/${shipment.id}',
+          data: <String, dynamic>{
+            'status': shipment.status,
+            'acceptedBidId': shipment.acceptedBidId ?? '',
+            'assignedCarrier': shipment.assignedCarrier ?? '',
+            'updatedAt': shipment.updatedAt.toIso8601String(),
+          },
+        );
+      } catch (_) {
+        rollbackFailed = true;
+      }
+    }
+
+    if (rollbackFailed) {
+      throw const ServerException(
+        'Bid acceptance failed and the server could not be restored.',
       );
     }
   }

@@ -163,14 +163,14 @@ post_json shipments '{
   "pickupAt":"2027-01-22T08:00:00.000Z",
   "expectedFare":24000,
   "currency":"NPR",
-  "status":"scheduled",
+  "status":"cancelled",
   "acceptedBidId":"",
-  "assignedCarrier":"Himalayan Cargo",
-  "notes":"",
+  "assignedCarrier":"",
+  "notes":"Cancelled by shipper",
   "createdAt":"2026-11-05T10:00:00.000Z",
   "updatedAt":"2026-11-06T10:00:00.000Z"
 }' > /dev/null
-echo "  ✓ LOD-1004 (scheduled)"
+echo "  ✓ LOD-1004 (cancelled)"
 
 # ── seed bids (linked to LOD-1002) ──────────────────────────
 echo ""

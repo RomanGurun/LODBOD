@@ -8,9 +8,13 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (error) {
+    debugPrint('Firebase initialization failed: $error');
+  }
   runApp(const ProviderScope(child: LodbodApp()));
 }
 

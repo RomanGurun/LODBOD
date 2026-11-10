@@ -36,7 +36,14 @@ void main() {
 
     await tester.enterText(find.byType(TextField), '');
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Scheduled'));
+    await tester.dragUntilVisible(
+      find.widgetWithText(ChoiceChip, 'Cancelled'),
+      find.byType(ListView).first,
+      const Offset(-200, 0),
+    );
+    await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'Cancelled'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Cancelled'));
     await tester.pumpAndSettle();
 
     expect(find.text('LOD-1004'), findsOneWidget);

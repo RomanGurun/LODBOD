@@ -14,11 +14,11 @@ void main() {
     repository = MockShipmentRepository(latency: Duration.zero);
   });
 
-  test('loads seed data with three active shipments', () async {
+  test('loads seed data with two active shipments', () async {
     final shipments = await repository.getShipments();
 
     expect(shipments, hasLength(4));
-    expect(ShipmentLimitRule.countActive(shipments), 3);
+    expect(ShipmentLimitRule.countActive(shipments), 2);
   });
 
   test('LOD-1002 exposes two pending bids', () async {

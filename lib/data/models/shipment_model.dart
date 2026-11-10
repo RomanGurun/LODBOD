@@ -51,6 +51,32 @@ class ShipmentModel {
 
   static const Object _sentinel = Object();
 
+  factory ShipmentModel.fromEntity(Shipment shipment) {
+    return ShipmentModel(
+      id: shipment.id,
+      reference: shipment.reference,
+      shipperName: shipment.shipperName,
+      pickupCity: shipment.pickupCity,
+      pickupAddress: shipment.pickupAddress,
+      destinationCity: shipment.destinationCity,
+      destinationAddress: shipment.destinationAddress,
+      cargoDescription: shipment.cargoDescription,
+      cargoCategory: shipment.cargoCategory,
+      weight: shipment.weight,
+      weightUnit: shipment.weightUnit,
+      vehicleType: shipment.vehicleType,
+      pickupAt: shipment.pickupAt,
+      expectedFare: shipment.expectedFare,
+      currency: shipment.currency,
+      status: shipment.status.wire,
+      acceptedBidId: shipment.acceptedBidId,
+      assignedCarrier: shipment.assignedCarrier,
+      notes: shipment.notes,
+      createdAt: shipment.createdAt,
+      updatedAt: shipment.updatedAt,
+    );
+  }
+
   factory ShipmentModel.fromJson(Map<String, dynamic> json) {
     return ShipmentModel(
       id: json['id'].toString(),

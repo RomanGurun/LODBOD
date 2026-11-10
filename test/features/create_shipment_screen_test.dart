@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/data/mock/mock_shipment_repository.dart';
+import 'package:lodbod/data/mock/seed_data.dart';
+import 'package:lodbod/data/models/shipment_model.dart';
 import 'package:lodbod/features/create/screens/create_shipment_screen.dart';
 import 'package:lodbod/shared/providers/repository_providers.dart';
 
@@ -13,12 +15,28 @@ void main() {
     );
   }
 
-  Future<void> pumpForm(WidgetTester tester) async {
+  MockShipmentRepository threeActiveRepository() {
+    final seed = buildSeedShipments();
+    return MockShipmentRepository(
+      shipments: <ShipmentModel>[
+        seed[0],
+        seed[1],
+        seed[3].copyWith(status: 'scheduled'),
+      ],
+      bids: buildSeedBids(),
+      latency: Duration.zero,
+    );
+  }
+
+  Future<void> pumpForm(
+    WidgetTester tester, {
+    MockShipmentRepository? repository,
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
           shipmentRepositoryProvider.overrideWithValue(
-            MockShipmentRepository(latency: Duration.zero),
+            repository ?? MockShipmentRepository(latency: Duration.zero),
           ),
         ],
         child: const MaterialApp(home: CreateShipmentScreen()),
@@ -32,10 +50,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('validates each step and shows the limit without losing input',
-      (tester) async {
-    await pumpForm(tester);
-
+  Future<void> fillToReview(WidgetTester tester) async {
     await tester.enterText(fieldWithHint('Kathmandu'), 'Kathmandu');
     await tester.enterText(
       fieldWithHint('Kalimati, Kathmandu'),
@@ -62,6 +77,12 @@ void main() {
     await tapNext(tester);
 
     await tapNext(tester);
+  }
+
+  testWidgets('validates each step and shows the limit without losing input',
+      (tester) async {
+    await pumpForm(tester, repository: threeActiveRepository());
+    await fillToReview(tester);
 
     expect(find.text(AppStrings.step5Title), findsOneWidget);
     expect(find.text('Kathmandu · Kalimati, Kathmandu'), findsOneWidget);
@@ -85,6 +106,19 @@ void main() {
     expect(find.text(AppStrings.step1Title), findsOneWidget);
     final pickup = tester.widget<TextField>(fieldWithHint('Kathmandu'));
     expect(pickup.controller?.text, 'Kathmandu');
+  });
+
+  testWidgets('creates a shipment when below the active limit', (tester) async {
+    await pumpForm(tester);
+    await fillToReview(tester);
+
+    expect(find.text(AppStrings.step5Title), findsOneWidget);
+
+    await tester.tap(find.text(AppStrings.submit));
+    await tester.pumpAndSettle();
+
+    expect(find.text(AppStrings.shipmentCreated), findsOneWidget);
+    expect(find.textContaining('LOD-1005'), findsOneWidget);
   });
 
   testWidgets('blocks the first step until required fields are filled',

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lodbod/core/errors/app_exception.dart';
 import 'package:lodbod/data/mock/mock_shipment_repository.dart';
 import 'package:lodbod/data/mock/seed_data.dart';
+import 'package:lodbod/data/models/shipment_model.dart';
 import 'package:lodbod/domain/enums/bid_status.dart';
 import 'package:lodbod/domain/enums/shipment_status.dart';
 import 'package:lodbod/features/shipments/providers/shipment_notifier.dart';
@@ -51,8 +52,17 @@ void main() {
   });
 
   test('createShipment enforces the three-active limit', () async {
-    final container =
-        containerWith(MockShipmentRepository(latency: Duration.zero));
+    final seed = buildSeedShipments();
+    final repository = MockShipmentRepository(
+      shipments: <ShipmentModel>[
+        seed[0],
+        seed[1],
+        seed[3].copyWith(status: 'scheduled'),
+      ],
+      bids: const [],
+      latency: Duration.zero,
+    );
+    final container = containerWith(repository);
     await container.read(shipmentNotifierProvider.future);
 
     await expectLater(
@@ -64,7 +74,7 @@ void main() {
 
     expect(
       container.read(shipmentNotifierProvider).valueOrNull,
-      hasLength(4),
+      hasLength(3),
     );
   });
 

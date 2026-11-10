@@ -30,6 +30,23 @@ class BidModel {
     required this.createdAt,
   });
 
+  factory BidModel.fromEntity(Bid bid) {
+    return BidModel(
+      id: bid.id,
+      shipmentId: bid.shipmentId,
+      carrierName: bid.carrierName,
+      carrierRating: bid.carrierRating,
+      carrierVerified: bid.carrierVerified,
+      fare: bid.fare,
+      currency: bid.currency,
+      etaDays: bid.etaDays,
+      estimatedDeliveryAt: bid.estimatedDeliveryAt,
+      message: bid.message,
+      status: bid.status.wire,
+      createdAt: bid.createdAt,
+    );
+  }
+
   factory BidModel.fromJson(Map<String, dynamic> json) {
     return BidModel(
       id: json['id'].toString(),

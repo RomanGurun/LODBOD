@@ -87,9 +87,9 @@ errors and limit hits. It delegates the limit check and persistence to
 - **Shipments = mockapi.io hosted mock API + in-code fallback at the repository
   boundary.** `RestShipmentRepository` talks to mockapi.io over Dio;
   `MockShipmentRepository` (seed + fake delay + failure flag) is the fallback.
-  `FallbackShipmentRepository` decorates them: reads fall back on
-  connectivity/timeout/5xx with a visible "sample data" banner; writes never
-  silently fall back. Full endpoint/field contract in §6.
+  `ResilientShipmentRepository` decorates them: connectivity/timeout/5xx
+  failures switch reads and writes to a local snapshot with a visible offline
+  banner. Full endpoint/field contract in §6.
 - **Two model layers per entity:** `data/models/*_model.dart` (JSON DTO with
   `fromJson`/`toJson`/`toEntity`) and `domain/entities/*.dart` (pure entity).
   Repository maps DTO → entity; UI/notifiers never see JSON.
@@ -99,11 +99,12 @@ errors and limit hits. It delegates the limit check and persistence to
   `status`, `bidCount`, `acceptedBidId`, `assignedCarrier`, `bids[]`,
   `timeline[]`, `createdAt`/`updatedAt`. Response envelope includes
   `data`/`meta{page,pageSize,total,hasMore}`; errors use a typed envelope.
-- **Reads are resilient, writes are honest:** DTO/mock read failures may fall
-  back to seed data with a visible "sample data" marker; create/accept failures
-  surface errors and never fake success.
-- Seed data uses **future dates** and exactly 3 active shipments
-  (LOD-1001/1002/1004) so the 3-limit demo triggers immediately.
+- **Reads and writes are resilient:** remote failures switch to a local
+  snapshot (or seed) and surface a visible offline banner. Local writes still
+  enforce the 3-request limit; a write is never presented as a remote success.
+- Seed data uses **future dates** and exactly 2 active shipments
+  (LOD-1001/1002); LOD-1004 is cancelled, so the first mobile create succeeds
+  and the next hits the 3-request limit.
 
 ---
 

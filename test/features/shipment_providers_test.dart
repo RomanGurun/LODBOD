@@ -27,15 +27,16 @@ void main() {
     final stats = container.read(dashboardStatsProvider).requireValue;
 
     expect(stats.total, 4);
-    expect(stats.active, 3);
+    expect(stats.active, 2);
     expect(stats.awaitingBids, 1);
-    expect(stats.completed, 1);
+    expect(stats.completed, 2);
 
     final counts = container.read(shipmentStatusCountsProvider).requireValue;
     expect(counts[ShipmentStatus.inTransit], 1);
     expect(counts[ShipmentStatus.awaitingBids], 1);
     expect(counts[ShipmentStatus.delivered], 1);
-    expect(counts[ShipmentStatus.scheduled], 1);
+    expect(counts[ShipmentStatus.cancelled], 1);
+    expect(counts[ShipmentStatus.scheduled], 0);
     expect(counts[ShipmentStatus.open], 0);
   });
 
