@@ -55,11 +55,14 @@ class SplashScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: AppSizes.sm),
-                Text(
-                  'Checking your session...',
-                  style: Theme.of(context).textTheme.bodySmall,
+                Expanded(
+                  child: Text(
+                    'Checking your session...',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
-                const Spacer(),
                 Text(
                   'v1.0.0',
                   style: Theme.of(context).textTheme.bodySmall,
