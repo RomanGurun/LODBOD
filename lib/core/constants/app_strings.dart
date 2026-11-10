@@ -7,8 +7,8 @@ class AppStrings {
   // Auth
   static const String login = 'Sign In';
   static const String logout = 'Sign Out';
-  static const String loginTitle = 'Welcome Back';
-  static const String loginSubtitle = 'Sign in to manage your shipments';
+  static const String loginTitle = 'Welcome back';
+  static const String loginSubtitle = 'Log in to manage your shipments.';
   static const String emailOrPhone = 'Email or Phone';
   static const String password = 'Password';
   static const String forgotPassword = 'Forgot password?';

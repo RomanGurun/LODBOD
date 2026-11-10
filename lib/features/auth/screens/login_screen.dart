@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/theme/tokens.dart';
 import '../../../core/utils/validators.dart';
+import '../../../shared/widgets/app_logo.dart';
+import '../../../shared/widgets/app_text_field.dart';
 import '../providers/auth_notifier.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -19,6 +20,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _keepSignedIn = true;
 
   @override
   void dispose() {
@@ -36,12 +38,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
   }
 
-  void _useDemoAccount() {
-    _emailController.text = AppStrings.demoEmail;
-    _passwordController.text = AppStrings.demoPassword;
-    _formKey.currentState?.validate();
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
@@ -50,135 +46,264 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSizes.lg),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(AppSizes.radiusLg),
-                          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.screenHorizontal,
+                21,
+                AppSizes.screenHorizontal,
+                AppSizes.md,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 25,
+                  maxWidth: 420,
+                ),
+                child: IntrinsicHeight(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: AppLogo(),
                         ),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.local_shipping_outlined,
-                          color: AppColors.textOnPrimary,
-                          size: AppSizes.iconLg,
+                        const SizedBox(height: 22),
+                        Text(
+                          AppStrings.loginTitle,
+                          style: Theme.of(context).textTheme.displaySmall,
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.md),
-                    Text(
-                      AppStrings.appName,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 2,
-                          ),
-                    ),
-                    const SizedBox(height: AppSizes.xl),
-                    Text(
-                      AppStrings.loginTitle,
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: AppSizes.xs),
-                    Text(
-                      AppStrings.loginSubtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                    ),
-                    const SizedBox(height: AppSizes.lg),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.mail_outline),
-                      ),
-                      validator: Validators.email,
-                    ),
-                    const SizedBox(height: AppSizes.md),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      autofillHints: const [AutofillHints.password],
-                      onFieldSubmitted: (_) {
-                        if (!isLoading) _submit();
-                      },
-                      decoration: InputDecoration(
-                        labelText: AppStrings.password,
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          tooltip: _obscurePassword
-                              ? 'Show password'
-                              : 'Hide password',
-                          onPressed: () {
-                            setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            );
+                        const SizedBox(height: 11),
+                        Text(
+                          AppStrings.loginSubtitle,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                        ),
+                        const SizedBox(height: AppSizes.lg),
+                        const _EmailSegment(),
+                        const SizedBox(height: 34),
+                        AppTextField(
+                          controller: _emailController,
+                          label: 'Email address',
+                          hint: 'you@company.com',
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.email],
+                          validator: Validators.email,
+                        ),
+                        const SizedBox(height: 33),
+                        AppTextField(
+                          controller: _passwordController,
+                          label: 'Password',
+                          hint: 'Enter your password',
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.password],
+                          onSubmitted: (_) {
+                            if (!isLoading) _submit();
                           },
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
+                          validator: Validators.password,
+                          suffixIcon: IconButton(
+                            tooltip: _obscurePassword
+                                ? 'Show password'
+                                : 'Hide password',
+                            onPressed: () {
+                              setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              );
+                            },
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              size: AppSizes.iconMd,
+                            ),
                           ),
                         ),
-                      ),
-                      validator: Validators.password,
-                    ),
-                    if (error != null) ...[
-                      const SizedBox(height: AppSizes.md),
-                      Text(
-                        error,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppColors.error),
-                      ),
-                    ],
-                    const SizedBox(height: AppSizes.lg),
-                    FilledButton(
-                      onPressed: isLoading ? null : _submit,
-                      child: isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.textOnPrimary,
+                        if (error != null) ...[
+                          const SizedBox(height: AppSizes.sm),
+                          Text(
+                            error,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: AppColors.error),
+                          ),
+                        ],
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: Checkbox(
+                                value: _keepSignedIn,
+                                onChanged: (value) {
+                                  setState(
+                                    () => _keepSignedIn = value ?? false,
+                                  );
+                                },
                               ),
-                            )
-                          : const Text(AppStrings.login),
+                            ),
+                            const SizedBox(width: AppSizes.xs),
+                            Text(
+                              'Keep me signed in',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const Spacer(),
+                            TextButton(
+                              onPressed: _showResetPassword,
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(0, 28),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: const Text('Forgot password?'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSizes.md),
+                        FilledButton(
+                          onPressed: isLoading ? null : _submit,
+                          child: isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.textOnPrimary,
+                                  ),
+                                )
+                              : const Text('Log in'),
+                        ),
+                        const SizedBox(height: AppSizes.md),
+                        const _OrDivider(),
+                        const SizedBox(height: 12),
+                        OutlinedButton(
+                          onPressed: _showCreateAccount,
+                          child: const Text('Create a shipper account'),
+                        ),
+                        const Spacer(),
+                        const SizedBox(height: AppSizes.lg),
+                        const Text(
+                          'By continuing you agree to the Terms and Privacy Policy',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: AppTypography.fontFamily,
+                            fontSize: AppTypography.caption,
+                            color: AppColors.textTertiary,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: AppSizes.md),
-                    OutlinedButton.icon(
-                      onPressed: isLoading ? null : _useDemoAccount,
-                      icon: const Icon(Icons.bolt_outlined),
-                      label: const Text('Use demo account'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showResetPassword() {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reset password'),
+        content: Text(
+          'Password reset is not available in this demo.\n\n'
+          'Use ${AppStrings.demoEmail} with password '
+          '${AppStrings.demoPassword}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text(AppStrings.gotIt),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showCreateAccount() {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Create a shipper account'),
+        content: Text(
+          'Registration is handled on the LODBOD web platform.\n\n'
+          'For this demo, sign in with ${AppStrings.demoEmail} / '
+          '${AppStrings.demoPassword}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text(AppStrings.gotIt),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmailSegment extends StatelessWidget {
+  const _EmailSegment();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: AppSizes.inputHeight,
+      padding: const EdgeInsets.all(AppSizes.xs),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          'Email',
+          style: TextStyle(
+            fontFamily: AppTypography.fontFamily,
+            fontSize: AppTypography.caption,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textOnPrimary,
           ),
         ),
       ),
+    );
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+          child: Text(
+            'or',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+          ),
+        ),
+        const Expanded(child: Divider()),
+      ],
     );
   }
 }
