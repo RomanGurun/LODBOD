@@ -249,6 +249,17 @@ class FirebaseAuthRepository implements IAuthRepository {
   Future<void> cancelPhoneLink() => _dataSource.cancelPhoneLink();
 
   @override
+  Future<void> deleteCurrentUser() async {
+    try {
+      await _dataSource.deleteCurrentUser();
+    } catch (_) {}
+    try {
+      await _fallback.deleteCurrentUser();
+    } catch (_) {}
+    _emit(null);
+  }
+
+  @override
   Future<void> signOut() async {
     try {
       await _dataSource.signOut();

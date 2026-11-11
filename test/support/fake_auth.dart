@@ -238,6 +238,18 @@ class FakeAuthRepository implements IAuthRepository {
     _verificationId = null;
   }
 
+  int deleteCurrentUserCount = 0;
+
+  @override
+  Future<void> deleteCurrentUser() async {
+    deleteCurrentUserCount += 1;
+    if (_user != null) {
+      registeredEmails.remove(_user!.email);
+    }
+    _user = null;
+    _controller.add(null);
+  }
+
   @override
   Future<void> signOut() async {
     _user = null;

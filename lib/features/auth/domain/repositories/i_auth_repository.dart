@@ -70,5 +70,8 @@ abstract class IAuthRepository {
   /// Abandons a pending phone link and signs the secondary app out.
   Future<void> cancelPhoneLink();
 
+  /// Deletes the currently authenticated user from auth backend.
+  Future<void> deleteCurrentUser();
+
   Future<void> signOut();
 }

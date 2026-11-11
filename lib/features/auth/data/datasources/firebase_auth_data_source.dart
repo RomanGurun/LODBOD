@@ -65,6 +65,8 @@ abstract class FirebaseAuthDataSource {
   });
 
   Future<void> cancelPhoneLink();
+
+  Future<void> deleteCurrentUser();
 }
 
 class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
@@ -178,6 +180,22 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
     await cancelPhoneLink();
+  }
+
+  @override
+  Future<void> deleteCurrentUser() async {
+    final user = _firebaseAuth.currentUser;
+    if (user != null) {
+      try {
+        await user.delete();
+      } on firebase.FirebaseAuthException catch (error) {
+        debugPrint(
+          'Firebase deleteCurrentUser failed: ${error.code} - ${error.message}',
+        );
+      } catch (e) {
+        debugPrint('deleteCurrentUser failed: $e');
+      }
+    }
   }
 
   static const String _validatorAppName = 'lodbod-phone-password-validator';

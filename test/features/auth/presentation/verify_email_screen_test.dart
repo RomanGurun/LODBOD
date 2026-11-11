@@ -56,9 +56,44 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.widgetWithText(TextButton, 'Go back'),
+      findsOneWidget,
+    );
+    expect(
       find.widgetWithText(TextButton, 'Sign out and use another email'),
       findsNothing,
     );
+    expect(find.byType(BackButton), findsNothing);
+    // AuthPage renders an IconButton with Icons.arrow_back in the AppBar
+    expect(find.byIcon(Icons.arrow_back), findsNWidgets(2)); // AppBar + TextButton
+  });
+
+  testWidgets('tapping Go back deletes pending unverified user', (tester) async {
+    await pumpScreen(tester);
+
+    expect(auth.deleteCurrentUserCount, 0);
+
+    final goBackButton = find.widgetWithText(TextButton, 'Go back');
+    await tester.ensureVisible(goBackButton);
+    await tester.tap(goBackButton);
+    await tester.pumpAndSettle();
+
+    expect(auth.deleteCurrentUserCount, 1);
+  });
+
+  testWidgets('tapping AppBar back button deletes pending unverified user',
+      (tester) async {
+    await pumpScreen(tester);
+
+    expect(auth.deleteCurrentUserCount, 0);
+
+    // Tap the AppBar back IconButton
+    final appBarBack = find.widgetWithIcon(IconButton, Icons.arrow_back);
+    expect(appBarBack, findsOneWidget);
+    await tester.tap(appBarBack);
+    await tester.pumpAndSettle();
+
+    expect(auth.deleteCurrentUserCount, 1);
   });
 
   testWidgets('shows warning SnackBar when email is not yet verified',
@@ -67,7 +102,10 @@ void main() {
 
     auth.isEmailVerified = false;
 
-    await tester.tap(find.widgetWithText(FilledButton, "I've verified my email"));
+    final verifyButton =
+        find.widgetWithText(FilledButton, "I've verified my email");
+    await tester.ensureVisible(verifyButton);
+    await tester.tap(verifyButton);
     await tester.pumpAndSettle();
 
     expect(find.byType(SnackBar), findsOneWidget);
@@ -84,11 +122,17 @@ void main() {
 
     auth.isEmailVerified = true;
 
-    await tester.tap(find.widgetWithText(FilledButton, "I've verified my email"));
+    final verifyButton =
+        find.widgetWithText(FilledButton, "I've verified my email");
+    await tester.ensureVisible(verifyButton);
+    await tester.tap(verifyButton);
     await tester.pumpAndSettle();
 
     expect(find.byType(SnackBar), findsOneWidget);
-    expect(find.text('Email verified successfully!'), findsOneWidget);
+    expect(
+      find.text('Account created successfully! Please sign in.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('resends verification email and shows confirmation',
@@ -97,9 +141,10 @@ void main() {
 
     expect(auth.sendEmailVerificationCount, 0);
 
-    await tester.tap(
-      find.widgetWithText(OutlinedButton, 'Resend verification email'),
-    );
+    final resendButton =
+        find.widgetWithText(OutlinedButton, 'Resend verification email');
+    await tester.ensureVisible(resendButton);
+    await tester.tap(resendButton);
     await tester.pumpAndSettle();
 
     expect(auth.sendEmailVerificationCount, 1);

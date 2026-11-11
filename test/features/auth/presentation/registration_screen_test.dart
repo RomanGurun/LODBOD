@@ -103,20 +103,13 @@ void main() {
   });
 
   testWidgets(
-      'creates account with email, password, and redirects to login with success snackbar',
+      'creates account with email, password, and saves unverified phone',
       (tester) async {
     await pumpScreen(tester);
     await fillForm(tester);
 
     await tester.tap(find.widgetWithText(FilledButton, button));
     await tester.pumpAndSettle();
-
-    expect(find.byType(SnackBar), findsOneWidget);
-    expect(
-      find.text('Account created successfully! Please log in.'),
-      findsOneWidget,
-    );
-    expect(find.text('Login Screen'), findsOneWidget);
 
     final profile = profiles.stored('new-uid');
     expect(profile?.email, 'aarav.shrestha@gmail.com');

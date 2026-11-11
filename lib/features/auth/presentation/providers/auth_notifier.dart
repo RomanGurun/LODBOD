@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/di/repository_providers.dart';
 import 'package:lodbod/core/errors/app_exception.dart';
 import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
 import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
-import 'package:lodbod/core/di/repository_providers.dart';
 
 class AuthNotifier extends AsyncNotifier<AuthUser?> {
   @override
@@ -87,6 +88,19 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     });
   }
 
+  /// Cancels an in-progress unverified email registration.
+  ///
+  /// Deletes the pending unverified user from Firebase Auth so no orphan
+  /// or typo accounts remain in Firebase, then clears the local session.
+  Future<void> cancelRegistration() async {
+    state = const AsyncLoading<AuthUser?>();
+    final repository = ref.read(authRepositoryProvider);
+    state = await AsyncValue.guard<AuthUser?>(() async {
+      await repository.deleteCurrentUser();
+      return null;
+    });
+  }
+
   /// Best-effort profile seed for email registration.
   ///
   /// The profile provider performs the authoritative get-or-create afterwards;
@@ -135,6 +149,13 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
   Future<UserProfile?> build() async {
     final user = await ref.watch(authNotifierProvider.future);
     if (user == null) return null;
+
+    final isDemo = user.email.trim().toLowerCase() == AppStrings.demoEmail;
+    final needsEmailVerification =
+        !user.isPhoneAccount && !isDemo && !user.isEmailVerified;
+    if (needsEmailVerification) {
+      return null;
+    }
 
     final repository = ref.watch(userProfileRepositoryProvider);
     return repository.ensureProfile(

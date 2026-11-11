@@ -63,27 +63,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           displayName: _nameController.text.trim(),
           phone: PhoneNumber.toE164(_phoneController.text),
         );
-
-    if (!mounted) return;
-    final authState = ref.read(authNotifierProvider);
-    if (!authState.hasError) {
-      await ref.read(authNotifierProvider.notifier).signOut();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Account created successfully! Please log in.'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go(AppRoutes.login);
-      }
-    }
+    // The router moves on to /verify-email as soon as auth and the profile are ready.
   }
 
   void _goToLogin() {

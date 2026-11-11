@@ -169,5 +169,15 @@ class MockAuthRepository implements IAuthRepository {
   @override
   Future<void> cancelPhoneLink() async {}
 
+  @override
+  Future<void> deleteCurrentUser() async {
+    await Future<void>.delayed(latency);
+    if (_currentUser != null) {
+      _registeredEmails.remove(_currentUser!.email);
+    }
+    _currentUser = null;
+    _controller.add(null);
+  }
+
   void dispose() => _controller.close();
 }
