@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:lodbod/core/errors/app_exception.dart';
-import 'package:lodbod/domain/entities/auth_user.dart';
-import 'package:lodbod/domain/repositories/i_auth_repository.dart';
+import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
+import 'package:lodbod/features/auth/domain/repositories/i_auth_repository.dart';
 
 /// Test double for [IAuthRepository] that starts signed in as [user].
 ///

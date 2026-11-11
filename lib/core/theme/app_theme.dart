@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'tokens.dart';
+import 'package:lodbod/core/theme/tokens.dart';
 
 class AppTheme {
   AppTheme._();

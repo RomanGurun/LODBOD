@@ -1,8 +1,8 @@
-import 'package:lodbod/domain/entities/bid.dart';
-import 'package:lodbod/domain/entities/create_shipment_draft.dart';
-import 'package:lodbod/domain/entities/shipment.dart';
-import 'package:lodbod/domain/enums/bid_status.dart';
-import 'package:lodbod/domain/enums/shipment_status.dart';
+import 'package:lodbod/features/shipments/domain/entities/bid.dart';
+import 'package:lodbod/features/shipments/domain/entities/create_shipment_draft.dart';
+import 'package:lodbod/features/shipments/domain/entities/shipment.dart';
+import 'package:lodbod/features/shipments/domain/enums/bid_status.dart';
+import 'package:lodbod/features/shipments/domain/enums/shipment_status.dart';
 
 Shipment buildShipment({
   String id = '1',

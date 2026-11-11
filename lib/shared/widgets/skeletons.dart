@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
-import 'package:lodbod/core/constants/app_colors.dart';
-import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/core/theme/tokens.dart';
 
 class ShimmerBox extends StatelessWidget {
   const ShimmerBox({

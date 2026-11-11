@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:lodbod/core/constants/app_colors.dart';
-import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/core/theme/tokens.dart';
 import 'package:lodbod/core/constants/app_strings.dart';
 
 class ErrorState extends StatelessWidget {
