@@ -12,6 +12,7 @@ import 'package:lodbod/shared/widgets/skeletons.dart';
 import 'package:lodbod/shared/widgets/state_views.dart';
 import 'package:lodbod/features/shipments/presentation/widgets/status_badge.dart';
 import 'package:lodbod/features/shipments/presentation/widgets/status_timeline.dart';
+import 'package:lodbod/features/shipments/presentation/widgets/advance_status_button.dart';
 import 'package:lodbod/features/shipments/presentation/providers/shipment_notifier.dart';
 import 'package:lodbod/features/shipments/presentation/providers/shipment_providers.dart';
 
@@ -266,6 +267,10 @@ class _TrackingContent extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 24),
+                // Demo control for the carrier-side status update
+                // (confirmed → in transit → delivered).
+                AdvanceStatusButton(shipment: shipment),
                 const SizedBox(height: 24),
                 OutlinedButton.icon(
                   onPressed: () {

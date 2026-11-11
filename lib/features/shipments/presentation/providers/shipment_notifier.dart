@@ -17,6 +17,8 @@ import 'package:lodbod/core/di/repository_providers.dart';
 class ShipmentNotifier extends AsyncNotifier<List<Shipment>> {
   bool _isCreating = false;
   bool _acceptInProgress = false;
+  bool _simulateBidInProgress = false;
+  bool _advanceInProgress = false;
 
   @override
   Future<List<Shipment>> build() async {
@@ -94,6 +96,77 @@ class ShipmentNotifier extends AsyncNotifier<List<Shipment>> {
       return updated;
     } finally {
       _acceptInProgress = false;
+    }
+  }
+
+  /// Demo control behind "Simulate carrier bid": posts a fictional carrier
+  /// bid through the real repository. See `IShipmentRepository` docs.
+  Future<Shipment> simulateCarrierBid(String shipmentId) async {
+    if (_simulateBidInProgress) {
+      throw const ConflictException('A carrier bid is already being added.');
+    }
+    final current = state.valueOrNull;
+    if (current == null) {
+      throw const ValidationException('Shipments are still loading.');
+    }
+
+    final index = current.indexWhere((shipment) => shipment.id == shipmentId);
+    if (index == -1) throw const NotFoundException();
+
+    // Only the owning shipper can trigger demo actions on a shipment.
+    final user = ref.read(authNotifierProvider).valueOrNull;
+    if (user == null || !ShipmentOwnership.isOwnedBy(current[index], user.id)) {
+      throw const ForbiddenException(
+        'You can only add carrier bids to your own shipments.',
+      );
+    }
+
+    _simulateBidInProgress = true;
+    try {
+      final updated = await ref
+          .read(shipmentRepositoryProvider)
+          .simulateCarrierBid(shipmentId);
+      final next = List<Shipment>.of(current)..[index] = updated;
+      state = AsyncData<List<Shipment>>(next);
+      return updated;
+    } finally {
+      _simulateBidInProgress = false;
+    }
+  }
+
+  /// Demo control behind "Mark as in transit / delivered": advances the
+  /// shipment to its next lifecycle status through the real repository.
+  Future<Shipment> advanceShipmentStatus(String shipmentId) async {
+    if (_advanceInProgress) {
+      throw const ConflictException(
+        'A shipment status update is already running.',
+      );
+    }
+    final current = state.valueOrNull;
+    if (current == null) {
+      throw const ValidationException('Shipments are still loading.');
+    }
+
+    final index = current.indexWhere((shipment) => shipment.id == shipmentId);
+    if (index == -1) throw const NotFoundException();
+
+    final user = ref.read(authNotifierProvider).valueOrNull;
+    if (user == null || !ShipmentOwnership.isOwnedBy(current[index], user.id)) {
+      throw const ForbiddenException(
+        'You can only update your own shipments.',
+      );
+    }
+
+    _advanceInProgress = true;
+    try {
+      final updated = await ref
+          .read(shipmentRepositoryProvider)
+          .advanceShipmentStatus(shipmentId);
+      final next = List<Shipment>.of(current)..[index] = updated;
+      state = AsyncData<List<Shipment>>(next);
+      return updated;
+    } finally {
+      _advanceInProgress = false;
     }
   }
 

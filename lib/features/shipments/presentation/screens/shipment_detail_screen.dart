@@ -15,6 +15,8 @@ import 'package:lodbod/shared/widgets/skeletons.dart';
 import 'package:lodbod/shared/widgets/state_views.dart';
 import 'package:lodbod/features/shipments/presentation/widgets/status_badge.dart';
 import 'package:lodbod/features/shipments/presentation/widgets/status_timeline.dart';
+import 'package:lodbod/features/shipments/presentation/widgets/advance_status_button.dart';
+import 'package:lodbod/features/shipments/presentation/widgets/simulate_bid_button.dart';
 import 'package:lodbod/features/bids/presentation/widgets/bid_card.dart';
 import 'package:lodbod/features/shipments/presentation/providers/shipment_notifier.dart';
 import 'package:lodbod/features/shipments/presentation/providers/shipment_providers.dart';
@@ -64,6 +66,8 @@ class ShipmentDetailScreen extends ConsumerWidget {
                 const SizedBox(height: AppSizes.md),
                 if (_isTrackable(shipment)) ...<Widget>[
                   _TrackButton(shipment: shipment),
+                  const SizedBox(height: AppSizes.md),
+                  AdvanceStatusButton(shipment: shipment),
                   const SizedBox(height: AppSizes.md),
                 ],
                 _CargoCard(shipment: shipment),
@@ -337,7 +341,10 @@ class _BidsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!shipment.hasBids && !shipment.isAwaitingBids) {
+    // The section stays visible while the load can still receive bids
+    // (open / awaiting), even before any carrier has bid — that is where
+    // the "simulate carrier bid" demo control lives.
+    if (!shipment.hasBids && !shipment.canReceiveBids) {
       return const SizedBox.shrink();
     }
 
@@ -381,6 +388,10 @@ class _BidsSection extends StatelessWidget {
           )
         else
           for (final bid in bids) BidCard(shipment: shipment, bid: bid),
+        if (shipment.canReceiveBids) ...[
+          const SizedBox(height: AppSizes.sm),
+          SimulateBidButton(shipment: shipment),
+        ],
       ],
     );
   }

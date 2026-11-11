@@ -113,4 +113,81 @@ void main() {
     final shipments = await failing.getShipments();
     expect(shipments, hasLength(4));
   });
+
+  test('simulateCarrierBid adds a third pending bid to LOD-1002', () async {
+    final updated = await repository.simulateCarrierBid('2');
+
+    expect(updated.status, ShipmentStatus.awaitingBids);
+    expect(updated.bidCount, 3);
+    final newBid = updated.bids.first;
+    expect(newBid.status, BidStatus.pending);
+    expect(newBid.carrierName, isNotEmpty);
+    expect(newBid.fare, greaterThan(0));
+    expect(newBid.etaDays, inInclusiveRange(1, 4));
+
+    // The bid is persisted: a fresh read sees it too.
+    final reloaded = await repository.getShipmentById('2');
+    expect(reloaded.bidCount, 3);
+  });
+
+  test('simulateCarrierBid flips a newly posted open load to awaiting bids',
+      () async {
+    final created = await repository.createShipment(validDraft());
+    expect(created.status, ShipmentStatus.open);
+    expect(created.canReceiveBids, isTrue);
+
+    final updated = await repository.simulateCarrierBid(created.id);
+
+    expect(updated.status, ShipmentStatus.awaitingBids);
+    expect(updated.bidCount, 1);
+    expect(updated.bids.single.shipmentId, created.id);
+    expect(updated.bids.single.status, BidStatus.pending);
+  });
+
+  test('simulateCarrierBid refuses shipments that cannot receive bids',
+      () async {
+    await expectLater(
+      repository.simulateCarrierBid('3'), // LOD-1003 is delivered
+      throwsA(isA<ConflictException>()),
+    );
+
+    // Nothing was written: still just the two seeded bids.
+    final shipments = await repository.getShipments();
+    expect(shipments, hasLength(4));
+    expect((await repository.getBids('3')), isEmpty);
+  });
+
+  test('advanceShipmentStatus walks confirmed to delivered in two steps',
+      () async {
+    // Accept a bid on LOD-1002 first, so the shipment is confirmed.
+    await repository.acceptBid(shipmentId: '2', bidId: '2');
+
+    final inTransit = await repository.advanceShipmentStatus('2');
+    expect(inTransit.status, ShipmentStatus.inTransit);
+    expect(inTransit.assignedCarrier, 'Swift Transport');
+
+    final delivered = await repository.advanceShipmentStatus('2');
+    expect(delivered.status, ShipmentStatus.delivered);
+    // The accepted bid is still attached to the booking.
+    expect(delivered.bidCount, 2);
+    expect(
+      delivered.bids.where((bid) => bid.status == BidStatus.accepted),
+      hasLength(1),
+    );
+  });
+
+  test('advanceShipmentStatus refuses terminal shipments', () async {
+    await expectLater(
+      repository.advanceShipmentStatus('3'), // delivered seed
+      throwsA(isA<ConflictException>()),
+    );
+    await expectLater(
+      repository.advanceShipmentStatus('2'), // still awaiting bids
+      throwsA(isA<ConflictException>()),
+    );
+
+    // A refused advance leaves the status untouched.
+    final unchanged = await repository.getShipmentById('2');
+    expect(unchanged.status, ShipmentStatus.awaitingBids);
+  });
 }

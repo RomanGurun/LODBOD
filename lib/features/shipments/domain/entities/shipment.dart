@@ -62,6 +62,11 @@ class Shipment {
 
   bool get isAwaitingBids => status == ShipmentStatus.awaitingBids;
 
+  /// Whether carriers can still submit bids on this shipment: true while
+  /// the load is posted (open) or actively awaiting bids.
+  bool get canReceiveBids =>
+      status == ShipmentStatus.open || status == ShipmentStatus.awaitingBids;
+
   bool get countsTowardsLimit => status.countsTowardsLimit;
 
   String get routeLabel => '$pickupCity \u2192 $destinationCity';

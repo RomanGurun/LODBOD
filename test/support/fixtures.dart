@@ -9,6 +9,7 @@ Shipment buildShipment({
   String reference = 'LOD-1001',
   ShipmentStatus status = ShipmentStatus.open,
   DateTime? pickupAt,
+  double expectedFare = 18000,
 }) {
   final now = DateTime.now();
   return Shipment(
@@ -25,7 +26,7 @@ Shipment buildShipment({
     weightUnit: 'tonnes',
     vehicleType: 'truck_10w',
     pickupAt: pickupAt ?? now.add(const Duration(days: 5)),
-    expectedFare: 18000,
+    expectedFare: expectedFare,
     status: status,
     createdAt: now,
     updatedAt: now,

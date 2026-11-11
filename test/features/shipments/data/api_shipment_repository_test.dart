@@ -400,4 +400,241 @@ void main() {
       throwsA(isA<ServerException>()),
     );
   });
+
+  test(
+      'simulates a carrier bid on an open load and flips it to awaiting '
+      'bids', () async {
+    var shipments = <Map<String, dynamic>>[
+      _shipment(
+        id: '5',
+        reference: 'LOD-1005',
+        status: 'open',
+        createdAt: '2026-11-08T10:00:00.000Z',
+      ),
+    ];
+    var bids = <Map<String, dynamic>>[];
+    RequestOptions? postedBid;
+    RequestOptions? patchedShipment;
+
+    final repo = _repository((options) {
+      final path = options.path;
+      if (path == '/shipments/5' && options.method == 'GET') {
+        return _json(shipments.first);
+      }
+      if (path == '/bids' && options.method == 'GET') {
+        return _json(bids);
+      }
+      if (path == '/bids' && options.method == 'POST') {
+        postedBid = options;
+        final body = Map<String, dynamic>.from(options.data as Map);
+        final created = <String, dynamic>{...body, 'id': '10'};
+        bids = <Map<String, dynamic>>[created];
+        return _json(created, statusCode: 201);
+      }
+      if (path == '/shipments/5' && options.method == 'PATCH') {
+        patchedShipment = options;
+        final body = Map<String, dynamic>.from(options.data as Map);
+        shipments = shipments
+            .map((row) => row['id'] == '5' ? {...row, ...body} : row)
+            .toList();
+        return _json(shipments.first);
+      }
+      throw StateError('Unexpected ${options.method} $path');
+    });
+
+    final updated = await repo.simulateCarrierBid('5');
+
+    // The bid is posted as a pending quote for that shipment.
+    expect(postedBid, isNotNull);
+    final body = postedBid!.data as Map<String, dynamic>;
+    expect(body['shipmentId'], '5');
+    expect(body['status'], 'pending');
+    expect(body['carrierName'], isNotEmpty);
+    expect(body['fare'], greaterThan(0));
+
+    // The open load flips to awaiting bids so the quote can be accepted.
+    expect(patchedShipment, isNotNull);
+    final patchBody = patchedShipment!.data as Map<String, dynamic>;
+    expect(patchBody['status'], 'awaiting_bids');
+
+    expect(updated.status, ShipmentStatus.awaitingBids);
+    expect(updated.bidCount, 1);
+    expect(updated.bids.single.status, BidStatus.pending);
+    expect(updated.bids.single.id, '10');
+  });
+
+  test('simulating a bid on an awaiting-bids shipment needs no status patch',
+      () async {
+    var shipments = _shipmentRows();
+    var bids = <Map<String, dynamic>>[
+      _bid(id: '1', carrierName: 'Himalayan Cargo', fare: 32000),
+      _bid(
+        id: '2',
+        carrierName: 'Swift Transport',
+        fare: 29500,
+        createdAt: '2026-11-04T13:00:00.000Z',
+      ),
+    ];
+    var patchedShipment = false;
+
+    final repo = _repository((options) {
+      final path = options.path;
+      if (path == '/shipments/2' && options.method == 'GET') {
+        return _json(shipments.firstWhere((row) => row['id'] == '2'));
+      }
+      if (path == '/bids' && options.method == 'GET') {
+        return _json(bids);
+      }
+      if (path == '/bids' && options.method == 'POST') {
+        final body = Map<String, dynamic>.from(options.data as Map);
+        final created = <String, dynamic>{...body, 'id': '3'};
+        bids = [...bids, created];
+        return _json(created, statusCode: 201);
+      }
+      if (path == '/shipments/2' && options.method == 'PATCH') {
+        patchedShipment = true;
+        return _json(shipments.firstWhere((row) => row['id'] == '2'));
+      }
+      throw StateError('Unexpected ${options.method} $path');
+    });
+
+    final updated = await repo.simulateCarrierBid('2');
+
+    expect(patchedShipment, isFalse);
+    expect(updated.status, ShipmentStatus.awaitingBids);
+    expect(updated.bidCount, 3);
+    expect(updated.bids.first.status, BidStatus.pending);
+  });
+
+  test('rolls the posted bid back when the status patch fails', () async {
+    final shipments = <Map<String, dynamic>>[
+      _shipment(
+        id: '5',
+        reference: 'LOD-1005',
+        status: 'open',
+        createdAt: '2026-11-08T10:00:00.000Z',
+      ),
+    ];
+    final bids = <Map<String, dynamic>>[];
+    var deletedBidId = '';
+
+    final repo = _repository((options) {
+      final path = options.path;
+      if (path == '/shipments/5' && options.method == 'GET') {
+        return _json(shipments.first);
+      }
+      if (path == '/bids' && options.method == 'GET') {
+        return _json(bids);
+      }
+      if (path == '/bids' && options.method == 'POST') {
+        final body = Map<String, dynamic>.from(options.data as Map);
+        final created = <String, dynamic>{...body, 'id': '10'};
+        bids.add(created);
+        return _json(created, statusCode: 201);
+      }
+      if (path == '/shipments/5' && options.method == 'PATCH') {
+        return _json(<String, dynamic>{'message': 'boom'}, statusCode: 500);
+      }
+      if (path == '/bids/10' && options.method == 'DELETE') {
+        deletedBidId = path.split('/').last;
+        bids.clear();
+        return _json(<String, dynamic>{});
+      }
+      throw StateError('Unexpected ${options.method} $path');
+    });
+
+    await expectLater(
+      repo.simulateCarrierBid('5'),
+      throwsA(isA<ServerException>()),
+    );
+
+    // The just-created bid was removed again — no orphaned quote.
+    expect(deletedBidId, '10');
+    expect(bids, isEmpty);
+  });
+
+  test('refuses to simulate a bid on a delivered shipment', () async {
+    var postedBid = false;
+    final repo = _repository((options) {
+      final path = options.path;
+      if (path == '/shipments/3' && options.method == 'GET') {
+        return _json(
+          _shipmentRows().firstWhere((row) => row['id'] == '3'),
+        );
+      }
+      if (path == '/bids' && options.method == 'GET') {
+        return _json(<Map<String, dynamic>>[]);
+      }
+      if (path == '/bids' && options.method == 'POST') {
+        postedBid = true;
+        throw StateError('POST should never happen');
+      }
+      throw StateError('Unexpected ${options.method} $path');
+    });
+
+    await expectLater(
+      repo.simulateCarrierBid('3'),
+      throwsA(isA<ConflictException>()),
+    );
+    expect(postedBid, isFalse);
+  });
+
+  test('advances an in-transit shipment to delivered', () async {
+    var shipments = _shipmentRows();
+    RequestOptions? patchBody;
+    final bids = <Map<String, dynamic>>[
+      <String, dynamic>{
+        ..._bid(id: '1', carrierName: 'Everest Freight', fare: 20000),
+        'shipmentId': '1',
+      },
+    ];
+
+    final repo = _repository((options) {
+      final path = options.path;
+      if (path == '/shipments/1' && options.method == 'GET') {
+        return _json(shipments.firstWhere((row) => row['id'] == '1'));
+      }
+      if (path == '/bids' && options.method == 'GET') {
+        return _json(bids);
+      }
+      if (path == '/shipments/1' && options.method == 'PATCH') {
+        patchBody = options;
+        final body = Map<String, dynamic>.from(options.data as Map);
+        shipments = shipments
+            .map((row) => row['id'] == '1' ? {...row, ...body} : row)
+            .toList();
+        return _json(shipments.firstWhere((row) => row['id'] == '1'));
+      }
+      throw StateError('Unexpected ${options.method} $path');
+    });
+
+    final updated = await repo.advanceShipmentStatus('1');
+
+    expect(patchBody, isNotNull);
+    expect((patchBody!.data as Map<String, dynamic>)['status'], 'delivered');
+    expect(updated.status, ShipmentStatus.delivered);
+    // Bids stay attached so the detail screen keeps showing the booking.
+    expect(updated.bidCount, 1);
+  });
+
+  test('advancing a delivered shipment is refused before any write', () async {
+    var patched = false;
+    final repo = _repository((options) {
+      final path = options.path;
+      if (path == '/shipments/3' && options.method == 'GET') {
+        return _json(_shipmentRows().firstWhere((row) => row['id'] == '3'));
+      }
+      if (path == '/shipments/3' && options.method == 'PATCH') {
+        patched = true;
+        throw StateError('PATCH should never happen');
+      }
+      throw StateError('Unexpected ${options.method} $path');
+    });
+
+    await expectLater(
+      repo.advanceShipmentStatus('3'),
+      throwsA(isA<ConflictException>()),
+    );
+    expect(patched, isFalse);
+  });
 }

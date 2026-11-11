@@ -110,6 +110,24 @@ class ResilientShipmentRepository implements IShipmentRepository {
     );
   }
 
+  @override
+  Future<Shipment> simulateCarrierBid(String shipmentId) {
+    return _run<Shipment>(
+      remote: () => _remote.simulateCarrierBid(shipmentId),
+      local: (repository) => repository.simulateCarrierBid(shipmentId),
+      onRemoteSuccess: _replaceInSnapshot,
+    );
+  }
+
+  @override
+  Future<Shipment> advanceShipmentStatus(String shipmentId) {
+    return _run<Shipment>(
+      remote: () => _remote.advanceShipmentStatus(shipmentId),
+      local: (repository) => repository.advanceShipmentStatus(shipmentId),
+      onRemoteSuccess: _replaceInSnapshot,
+    );
+  }
+
   Future<T> _run<T>({
     required Future<T> Function() remote,
     required Future<T> Function(IShipmentRepository repository) local,

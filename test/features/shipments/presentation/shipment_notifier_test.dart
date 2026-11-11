@@ -199,4 +199,86 @@ void main() {
       throwsA(isA<NotFoundException>()),
     );
   });
+
+  test('simulateCarrierBid turns an open load into an awaiting-bids one',
+      () async {
+    final container =
+        containerWith(MockShipmentRepository(latency: Duration.zero));
+    await container.read(shipmentNotifierProvider.future);
+
+    final created = await container
+        .read(shipmentNotifierProvider.notifier)
+        .createShipment(validDraft());
+    expect(created.status, ShipmentStatus.open);
+
+    final updated = await container
+        .read(shipmentNotifierProvider.notifier)
+        .simulateCarrierBid(created.id);
+
+    expect(updated.status, ShipmentStatus.awaitingBids);
+    expect(updated.bidCount, 1);
+    expect(updated.bids.single.status, BidStatus.pending);
+
+    // The state list reflects the simulated bid without a refresh.
+    final shipments =
+        container.read(shipmentNotifierProvider).valueOrNull ?? const [];
+    final target = shipments.firstWhere((s) => s.id == created.id);
+    expect(target.status, ShipmentStatus.awaitingBids);
+    expect(target.bidCount, 1);
+  });
+
+  test('advanceShipmentStatus walks the state to delivered', () async {
+    final container =
+        containerWith(MockShipmentRepository(latency: Duration.zero));
+    await container.read(shipmentNotifierProvider.future);
+
+    final confirmed =
+        await container.read(shipmentNotifierProvider.notifier).acceptBid(
+              shipmentId: '2',
+              bidId: '2',
+            );
+
+    final inTransit = await container
+        .read(shipmentNotifierProvider.notifier)
+        .advanceShipmentStatus('2');
+    expect(inTransit.status, ShipmentStatus.inTransit);
+
+    final delivered = await container
+        .read(shipmentNotifierProvider.notifier)
+        .advanceShipmentStatus('2');
+    expect(delivered.status, ShipmentStatus.delivered);
+
+    final shipments =
+        container.read(shipmentNotifierProvider).valueOrNull ?? const [];
+    expect(
+      shipments.firstWhere((s) => s.id == '2').status,
+      ShipmentStatus.delivered,
+    );
+    expect(confirmed.status, ShipmentStatus.confirmed);
+  });
+
+  test('demo actions never touch another shipper or missing shipments',
+      () async {
+    final container = containerWith(
+      MockShipmentRepository(latency: Duration.zero),
+      user: const AuthUser(
+        id: 'someone-else',
+        email: 'someone@else.com',
+        displayName: 'Someone Else',
+      ),
+    );
+    await container.read(shipmentNotifierProvider.future);
+
+    // Foreign shipments are not in this user's list → not found, no write.
+    await expectLater(
+      container.read(shipmentNotifierProvider.notifier).simulateCarrierBid('2'),
+      throwsA(isA<NotFoundException>()),
+    );
+    await expectLater(
+      container
+          .read(shipmentNotifierProvider.notifier)
+          .advanceShipmentStatus('2'),
+      throwsA(isA<NotFoundException>()),
+    );
+  });
 }

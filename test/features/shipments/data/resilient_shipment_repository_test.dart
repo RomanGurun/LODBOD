@@ -3,6 +3,7 @@ import 'package:lodbod/core/network/data_source_status.dart';
 import 'package:lodbod/features/shipments/data/mock/mock_shipment_repository.dart';
 import 'package:lodbod/features/shipments/data/repositories/resilient_shipment_repository.dart';
 import 'package:lodbod/features/shipments/domain/entities/create_shipment_draft.dart';
+import 'package:lodbod/features/shipments/domain/enums/shipment_status.dart';
 
 CreateShipmentDraft _draft() {
   return CreateShipmentDraft(
@@ -89,5 +90,34 @@ void main() {
     expect(created.reference, 'LOD-1005');
     expect(status.usingFallback.value, isTrue);
     expect(await repository.getShipments(), hasLength(5));
+  });
+
+  test('carrier-side demo writes fall back like every other write', () async {
+    final remote = MockShipmentRepository(latency: Duration.zero);
+    final repository =
+        ResilientShipmentRepository(remote: remote, status: status);
+
+    // Seed the live snapshot first so the fallback has real data to use.
+    await repository.getShipments();
+
+    remote.failWrites = true;
+
+    final simulated = await repository.simulateCarrierBid('2');
+    expect(simulated.status, ShipmentStatus.awaitingBids);
+    expect(simulated.bidCount, 3);
+
+    final advanced = await repository.advanceShipmentStatus('1');
+    expect(advanced.status, ShipmentStatus.delivered);
+
+    expect(status.usingFallback.value, isTrue);
+
+    // Both writes are visible through the fallback snapshot.
+    final shipments = await repository.getShipments();
+    final lod1002 =
+        shipments.firstWhere((shipment) => shipment.reference == 'LOD-1002');
+    final lod1001 =
+        shipments.firstWhere((shipment) => shipment.reference == 'LOD-1001');
+    expect(lod1002.bidCount, 3);
+    expect(lod1001.status, ShipmentStatus.delivered);
   });
 }

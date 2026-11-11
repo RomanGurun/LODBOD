@@ -7,14 +7,19 @@ import 'package:lodbod/features/shipments/domain/entities/shipment.dart';
 import 'package:lodbod/features/shipments/domain/enums/bid_status.dart';
 import 'package:lodbod/features/shipments/domain/enums/shipment_status.dart';
 import 'package:lodbod/features/shipments/domain/repositories/i_shipment_repository.dart';
+import 'package:lodbod/features/shipments/domain/factories/carrier_bid_factory.dart';
 import 'package:lodbod/features/shipments/domain/rules/bid_acceptance_rule.dart';
+import 'package:lodbod/features/shipments/domain/rules/shipment_status_flow.dart';
 import 'package:lodbod/features/shipments/domain/rules/shipment_validation.dart';
 import 'package:lodbod/features/shipments/data/models/bid_model.dart';
 import 'package:lodbod/features/shipments/data/models/shipment_model.dart';
 
 class ApiShipmentRepository implements IShipmentRepository {
-  ApiShipmentRepository({required String baseUrl, Dio? dio})
-      : _dio = dio ??
+  ApiShipmentRepository({
+    required String baseUrl,
+    Dio? dio,
+    CarrierBidFactory? carrierBidFactory,
+  })  : _dio = dio ??
             Dio(
               BaseOptions(
                 baseUrl: baseUrl,
@@ -22,9 +27,11 @@ class ApiShipmentRepository implements IShipmentRepository {
                 receiveTimeout: const Duration(seconds: 10),
                 sendTimeout: const Duration(seconds: 10),
               ),
-            );
+            ),
+        _carrierBidFactory = carrierBidFactory ?? CarrierBidFactory();
 
   final Dio _dio;
+  final CarrierBidFactory _carrierBidFactory;
 
   @override
   Future<List<Shipment>> getShipments({
@@ -226,6 +233,130 @@ class ApiShipmentRepository implements IShipmentRepository {
           .toEntity(
             bids: updatedBids.map((bid) => bid.toEntity()).toList(),
           );
+    } on DioException catch (error) {
+      throw _mapDioError(error);
+    } on FormatException {
+      throw const ServerException('The mock API returned invalid date data.');
+    } on TypeError {
+      throw const ServerException(
+        'The mock API returned an unexpected response.',
+      );
+    }
+  }
+
+  @override
+  Future<Shipment> simulateCarrierBid(String shipmentId) async {
+    try {
+      final response = await _dio.get<dynamic>('/shipments/$shipmentId');
+      final shipment = ShipmentModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      final existingBids = await _fetchBidModels(shipmentId);
+      final entity = shipment.toEntity(
+        bids: existingBids.map((bid) => bid.toEntity()).toList(),
+      );
+      if (!entity.canReceiveBids) {
+        throw ConflictException(
+          'A ${entity.status.label} shipment cannot receive new bids.',
+        );
+      }
+
+      final quote = _carrierBidFactory.generate(entity);
+      final now = DateTime.now();
+      final bidResponse = await _dio.post<dynamic>(
+        '/bids',
+        data: <String, dynamic>{
+          'shipmentId': shipmentId,
+          'carrierName': quote.carrierName,
+          'carrierRating': quote.carrierRating,
+          'carrierVerified': quote.carrierVerified,
+          'fare': quote.fare,
+          'currency': entity.currency,
+          'etaDays': quote.etaDays,
+          'estimatedDeliveryAt': quote.estimatedDeliveryAt.toIso8601String(),
+          'message': quote.message,
+          'status': BidStatus.pending.wire,
+          'createdAt': now.toIso8601String(),
+        },
+      );
+      final createdBid = BidModel.fromJson(
+        bidResponse.data as Map<String, dynamic>,
+      );
+
+      // A newly posted load is still `open`; bids can only be reviewed and
+      // accepted once the shipment is `awaiting_bids`, so flip it.
+      var updated = shipment;
+      if (entity.status == ShipmentStatus.open) {
+        try {
+          await _dio.patch<dynamic>(
+            '/shipments/$shipmentId',
+            data: <String, dynamic>{
+              'status': ShipmentStatus.awaitingBids.wire,
+              'updatedAt': now.toIso8601String(),
+            },
+          );
+          updated = shipment.copyWith(
+            status: ShipmentStatus.awaitingBids.wire,
+            updatedAt: now,
+          );
+        } catch (_) {
+          // Keep the server consistent: remove the just-created bid again.
+          var rollbackFailed = false;
+          try {
+            await _dio.delete<dynamic>('/bids/${createdBid.id}');
+          } catch (_) {
+            rollbackFailed = true;
+          }
+          if (rollbackFailed) {
+            throw const ServerException(
+              'Simulating a carrier bid failed and the server could not be '
+              'restored.',
+            );
+          }
+          rethrow;
+        }
+      }
+
+      final bids = <BidModel>[...existingBids, createdBid]
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return updated.toEntity(
+        bids: bids.map((bid) => bid.toEntity()).toList(),
+      );
+    } on DioException catch (error) {
+      throw _mapDioError(error);
+    } on FormatException {
+      throw const ServerException('The mock API returned invalid date data.');
+    } on TypeError {
+      throw const ServerException(
+        'The mock API returned an unexpected response.',
+      );
+    }
+  }
+
+  @override
+  Future<Shipment> advanceShipmentStatus(String shipmentId) async {
+    try {
+      final response = await _dio.get<dynamic>('/shipments/$shipmentId');
+      final shipment = ShipmentModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      final entity = shipment.toEntity();
+      ShipmentStatusFlow.ensureCanAdvance(entity);
+      final next = ShipmentStatusFlow.nextStatus(entity)!;
+
+      final bids = await _fetchBidModels(shipmentId);
+      final updatedAt = DateTime.now();
+      await _dio.patch<dynamic>(
+        '/shipments/$shipmentId',
+        data: <String, dynamic>{
+          'status': next.wire,
+          'updatedAt': updatedAt.toIso8601String(),
+        },
+      );
+
+      return shipment
+          .copyWith(status: next.wire, updatedAt: updatedAt)
+          .toEntity(bids: bids.map((bid) => bid.toEntity()).toList());
     } on DioException catch (error) {
       throw _mapDioError(error);
     } on FormatException {

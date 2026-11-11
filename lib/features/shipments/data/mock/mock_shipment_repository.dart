@@ -4,8 +4,10 @@ import 'package:lodbod/features/shipments/domain/entities/create_shipment_draft.
 import 'package:lodbod/features/shipments/domain/entities/shipment.dart';
 import 'package:lodbod/features/shipments/domain/enums/bid_status.dart';
 import 'package:lodbod/features/shipments/domain/enums/shipment_status.dart';
+import 'package:lodbod/features/shipments/domain/factories/carrier_bid_factory.dart';
 import 'package:lodbod/features/shipments/domain/repositories/i_shipment_repository.dart';
 import 'package:lodbod/features/shipments/domain/rules/bid_acceptance_rule.dart';
+import 'package:lodbod/features/shipments/domain/rules/shipment_status_flow.dart';
 import 'package:lodbod/features/shipments/domain/rules/shipment_validation.dart';
 import 'package:lodbod/features/shipments/data/models/bid_model.dart';
 import 'package:lodbod/features/shipments/data/models/shipment_model.dart';
@@ -18,8 +20,10 @@ class MockShipmentRepository implements IShipmentRepository {
     this.latency = const Duration(milliseconds: 400),
     this.failReads = false,
     this.failWrites = false,
+    CarrierBidFactory? carrierBidFactory,
   })  : _shipments = List<ShipmentModel>.of(shipments ?? buildSeedShipments()),
-        _bids = List<BidModel>.of(bids ?? buildSeedBids());
+        _bids = List<BidModel>.of(bids ?? buildSeedBids()),
+        _carrierBidFactory = carrierBidFactory ?? CarrierBidFactory();
 
   final Duration latency;
   bool failReads;
@@ -27,6 +31,7 @@ class MockShipmentRepository implements IShipmentRepository {
 
   final List<ShipmentModel> _shipments;
   final List<BidModel> _bids;
+  final CarrierBidFactory _carrierBidFactory;
 
   @override
   Future<List<Shipment>> getShipments({
@@ -154,6 +159,80 @@ class MockShipmentRepository implements IShipmentRepository {
     return updated.toEntity(bids: _bidsFor(shipmentId));
   }
 
+  @override
+  Future<Shipment> simulateCarrierBid(String shipmentId) async {
+    await _simulateWrite();
+
+    final shipmentIndex =
+        _shipments.indexWhere((shipment) => shipment.id == shipmentId);
+    if (shipmentIndex == -1) {
+      throw const NotFoundException('Shipment not found.');
+    }
+
+    final shipment = _shipments[shipmentIndex];
+    final entity = shipment.toEntity(bids: _bidsFor(shipmentId));
+    if (!entity.canReceiveBids) {
+      throw ConflictException(
+        'A ${entity.status.label} shipment cannot receive new bids.',
+      );
+    }
+
+    final quote = _carrierBidFactory.generate(entity);
+    final now = DateTime.now();
+    _bids.add(
+      BidModel(
+        id: _nextBidId(),
+        shipmentId: shipmentId,
+        carrierName: quote.carrierName,
+        carrierRating: quote.carrierRating,
+        carrierVerified: quote.carrierVerified,
+        fare: quote.fare,
+        currency: entity.currency,
+        etaDays: quote.etaDays,
+        estimatedDeliveryAt: quote.estimatedDeliveryAt,
+        message: quote.message,
+        status: BidStatus.pending.wire,
+        createdAt: now,
+      ),
+    );
+
+    // A newly posted load is still `open`; bids can only be reviewed and
+    // accepted once the shipment is `awaiting_bids`, so flip it.
+    final updated = entity.status == ShipmentStatus.open
+        ? shipment.copyWith(
+            status: ShipmentStatus.awaitingBids.wire,
+            updatedAt: now,
+          )
+        : shipment;
+    _shipments[shipmentIndex] = updated;
+
+    return updated.toEntity(bids: _bidsFor(shipmentId));
+  }
+
+  @override
+  Future<Shipment> advanceShipmentStatus(String shipmentId) async {
+    await _simulateWrite();
+
+    final shipmentIndex =
+        _shipments.indexWhere((shipment) => shipment.id == shipmentId);
+    if (shipmentIndex == -1) {
+      throw const NotFoundException('Shipment not found.');
+    }
+
+    final shipment = _shipments[shipmentIndex];
+    final entity = shipment.toEntity(bids: _bidsFor(shipmentId));
+    ShipmentStatusFlow.ensureCanAdvance(entity);
+    final next = ShipmentStatusFlow.nextStatus(entity)!;
+
+    final updated = shipment.copyWith(
+      status: next.wire,
+      updatedAt: DateTime.now(),
+    );
+    _shipments[shipmentIndex] = updated;
+
+    return updated.toEntity(bids: _bidsFor(shipmentId));
+  }
+
   Future<void> _simulateRead() async {
     await Future<void>.delayed(latency);
     if (failReads) throw const NetworkException();
@@ -177,6 +256,15 @@ class MockShipmentRepository implements IShipmentRepository {
     var max = 0;
     for (final shipment in _shipments) {
       final number = int.tryParse(shipment.id) ?? 0;
+      if (number > max) max = number;
+    }
+    return '${max + 1}';
+  }
+
+  String _nextBidId() {
+    var max = 0;
+    for (final bid in _bids) {
+      final number = int.tryParse(bid.id) ?? 0;
       if (number > max) max = number;
     }
     return '${max + 1}';

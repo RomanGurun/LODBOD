@@ -110,6 +110,25 @@ class AppStrings {
   static const String cancel = 'Cancel';
   static const String bidAccepted = 'Bid accepted successfully!';
 
+  // Carrier-side demo actions
+  static const String simulateBid = 'Simulate Carrier Bid';
+  static const String simulating = 'Simulating...';
+  static const String simulateBidConfirmTitle = 'Simulate a carrier bid?';
+  static const String simulateBidConfirmMessage =
+      'This prototype ships only the shipper app — there is no carrier side '
+      'to place bids. This demo control posts a fictional carrier bid '
+      'through the real API so the full lifecycle can be demonstrated.';
+  static const String bidSimulated = 'New bid from {carrier} for {fare}';
+  static const String advanceStatusButton = 'Mark as {status}';
+  static const String advancing = 'Updating...';
+  static const String advanceStatusConfirmTitle = 'Update shipment status?';
+  static const String advanceStatusConfirmMessage =
+      'Mark {reference} as {status}? In the full product the carrier makes '
+      'this update after pickup and delivery.';
+  static const String statusAdvanced = '{reference} is now {status}';
+  static const String demoControlNote =
+      'Demo control — stands in for the carrier side';
+
   // Analytics
   static const String analytics = 'Analytics';
 
