@@ -7,7 +7,6 @@ import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/core/routing/app_router.dart';
 import 'package:lodbod/core/theme/tokens.dart';
 import 'package:lodbod/core/utils/phone_number.dart';
-import 'package:lodbod/core/utils/validators.dart';
 import 'package:lodbod/features/auth/presentation/providers/phone_auth_controller.dart';
 import 'package:lodbod/features/auth/presentation/widgets/auth_page.dart';
 
@@ -21,42 +20,108 @@ class OtpVerificationScreen extends ConsumerStatefulWidget {
 
 class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _codeController = TextEditingController();
-  final _focusNode = FocusNode();
+  final List<TextEditingController> _controllers =
+      List.generate(6, (_) => TextEditingController());
+  late final List<FocusNode> _focusNodes = List.generate(
+    6,
+    (index) => FocusNode(
+      onKeyEvent: (node, event) => _handleKeyEvent(index, event),
+    ),
+  );
+
+  String? _validationError;
 
   @override
   void initState() {
     super.initState();
-    _codeController.addListener(_onCodeChanged);
-    _focusNode.addListener(_onFocusChanged);
-  }
-
-  void _onCodeChanged() {
-    if (mounted) setState(() {});
+    for (var i = 0; i < 6; i++) {
+      _focusNodes[i].addListener(_onFocusChanged);
+    }
   }
 
   void _onFocusChanged() {
     if (mounted) setState(() {});
   }
 
+  KeyEventResult _handleKeyEvent(int index, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (_controllers[index].text.isEmpty && index > 0) {
+        _controllers[index - 1].clear();
+        _focusNodes[index - 1].requestFocus();
+        setState(() {});
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   void dispose() {
-    _codeController.removeListener(_onCodeChanged);
-    _focusNode.removeListener(_onFocusChanged);
-    _codeController.dispose();
-    _focusNode.dispose();
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    for (final f in _focusNodes) {
+      f.removeListener(_onFocusChanged);
+      f.dispose();
+    }
     super.dispose();
   }
 
+  String get _code => _controllers.map((c) => c.text).join();
+
+  void _onDigitChanged(int index, String value) {
+    if (_validationError != null) {
+      setState(() => _validationError = null);
+    }
+    if (ref.read(phoneAuthControllerProvider).error != null) {
+      ref.read(phoneAuthControllerProvider.notifier).clearError();
+    }
+
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+
+    if (digits.length > 1) {
+      // User pasted or autofilled a multi-digit code
+      for (var i = 0; i < 6 && (index + i) < 6; i++) {
+        if (i < digits.length) {
+          _controllers[index + i].text = digits[i];
+        }
+      }
+      final nextIndex = (index + digits.length).clamp(0, 5);
+      _focusNodes[nextIndex].requestFocus();
+      setState(() {});
+      return;
+    }
+
+    if (digits.isNotEmpty) {
+      _controllers[index].text = digits;
+      if (index < 5) {
+        _focusNodes[index + 1].requestFocus();
+      }
+    }
+    setState(() {});
+  }
+
   Future<void> _verify() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    final success = await ref.read(phoneAuthControllerProvider.notifier).verify(
-          _codeController.text,
-        );
+    final code = _code.trim();
+    if (code.length < 6) {
+      setState(() => _validationError = 'Enter the 6-digit code');
+      return;
+    }
+
+    setState(() => _validationError = null);
+    FocusScope.of(context).unfocus();
+
+    final success =
+        await ref.read(phoneAuthControllerProvider.notifier).verify(code);
     if (!mounted) return;
     if (!success) {
-      _codeController.clear();
-      _focusNode.requestFocus();
+      // Delete all entered OTP digits on wrong/failed code
+      for (final controller in _controllers) {
+        controller.clear();
+      }
+      // Return focus to first box for immediate re-entry
+      _focusNodes[0].requestFocus();
       setState(() {});
     }
   }
@@ -91,6 +156,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       );
     }
 
+    final hasError = state.error != null || _validationError != null;
+
     return AuthPage(
       title: AppStrings.otpTitle,
       subtitle:
@@ -108,133 +175,95 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                   ? 6.0
                   : (availableWidth < 380 ? 8.0 : 10.0);
               final boxWidth =
-                  ((availableWidth - (5 * gap)) / 6).clamp(36.0, 52.0);
-              final boxHeight = (boxWidth * 1.22).clamp(46.0, 58.0);
+                  ((availableWidth - (5 * gap)) / 6).clamp(38.0, 52.0);
+              final boxHeight = (boxWidth * 1.18).clamp(48.0, 58.0);
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _focusNode.requestFocus(),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      alignment: Alignment.topCenter,
-                      children: [
-                        // Responsive 6 visual boxes
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: List.generate(6, (index) {
-                            final text = _codeController.text;
-                            final isFilled = index < text.length;
-                            final char = isFilled ? text[index] : '';
-                            final isFocused = _focusNode.hasFocus &&
-                                (index == text.length ||
-                                    (index == 5 && text.length == 6));
-                            final hasError = state.error != null;
+                  // Row of 6 individual, responsive OTP input boxes
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(6, (index) {
+                      final isFocused = _focusNodes[index].hasFocus;
+                      final isFilled = _controllers[index].text.isNotEmpty;
 
-                            final borderColor = hasError
-                                ? AppColors.error
-                                : isFocused
-                                    ? AppColors.primary
-                                    : isFilled
-                                        ? AppColors.textPrimary
-                                        : AppColors.border;
+                      final borderColor = hasError
+                          ? AppColors.error
+                          : isFocused
+                              ? AppColors.primary
+                              : isFilled
+                                  ? AppColors.textPrimary
+                                  : AppColors.border;
 
-                            final borderWidth =
-                                (isFocused || hasError) ? 2.0 : 1.0;
-
-                            return Container(
-                              width: boxWidth,
-                              height: boxHeight,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: hasError
-                                    ? AppColors.error.withValues(alpha: 0.04)
-                                    : isFocused
-                                        ? AppColors.primarySoft
-                                            .withValues(alpha: 0.2)
-                                        : AppColors.surface,
-                                borderRadius:
-                                    BorderRadius.circular(AppSizes.radiusMd),
-                                border: Border.all(
-                                  color: borderColor,
-                                  width: borderWidth,
-                                ),
-                                boxShadow: isFocused
-                                    ? [
-                                        BoxShadow(
-                                          color: AppColors.primary
-                                              .withValues(alpha: 0.12),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              child: Text(
-                                char,
-                                style: textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: hasError
-                                      ? AppColors.error
-                                      : AppColors.textPrimary,
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-
-                        // Transparent TextFormField overlaid for keyboard capture, SMS autofill, and validation
-                        TextFormField(
-                          controller: _codeController,
-                          focusNode: _focusNode,
+                      return SizedBox(
+                        width: boxWidth,
+                        height: boxHeight,
+                        child: TextFormField(
+                          controller: _controllers[index],
+                          focusNode: _focusNodes[index],
                           keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.done,
-                          autofillHints: const [AutofillHints.oneTimeCode],
-                          autofocus: true,
-                          style: const TextStyle(
-                            color: Colors.transparent,
-                            fontSize: 1,
-                            height: 1,
-                          ),
-                          cursorColor: Colors.transparent,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: (boxHeight - 1) / 2,
-                            ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            errorBorder: InputBorder.none,
-                            focusedErrorBorder: InputBorder.none,
-                            errorStyle: const TextStyle(
-                              color: AppColors.error,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              height: 1.4,
-                            ),
+                          textAlign: TextAlign.center,
+                          autofocus: index == 0,
+                          style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: hasError
+                                ? AppColors.error
+                                : AppColors.textPrimary,
                           ),
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(6),
                           ],
-                          validator: Validators.otpCode,
-                          onChanged: (value) {
-                            if (state.error != null) {
-                              ref
-                                  .read(phoneAuthControllerProvider.notifier)
-                                  .clearError();
-                            }
-                          },
+                          decoration: InputDecoration(
+                            counterText: '',
+                            filled: true,
+                            fillColor: hasError
+                                ? AppColors.error.withValues(alpha: 0.04)
+                                : isFocused
+                                    ? AppColors.primarySoft
+                                        .withValues(alpha: 0.25)
+                                    : AppColors.surface,
+                            contentPadding: EdgeInsets.zero,
+                            border: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppSizes.radiusMd),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppSizes.radiusMd),
+                              borderSide: BorderSide(
+                                color: borderColor,
+                                width: isFilled ? 1.5 : 1.0,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppSizes.radiusMd),
+                              borderSide: BorderSide(
+                                color: borderColor,
+                                width: 2.0,
+                              ),
+                            ),
+                          ),
+                          onChanged: (value) => _onDigitChanged(index, value),
                           onFieldSubmitted: (_) {
                             if (!state.isVerifying) _verify();
                           },
                         ),
-                      ],
-                    ),
+                      );
+                    }),
                   ),
+                  if (_validationError != null) ...[
+                    const SizedBox(height: AppSizes.sm),
+                    Text(
+                      _validationError!,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ],
               );
             },

@@ -367,17 +367,28 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
       );
     }
 
+    final hasPhoneProvider = current.providerData.any(
+      (p) => p.providerId == 'phone',
+    );
+
     try {
-      await current.linkWithCredential(credential);
+      if (hasPhoneProvider) {
+        // The phone provider is already linked to this email account.
+        // We MUST reauthenticateWithCredential to force Firebase to validate
+        // the smsCode against the verification ID. Calling linkWithCredential
+        // would immediately throw 'provider-already-linked' without checking
+        // the smsCode.
+        await current.reauthenticateWithCredential(credential);
+      } else {
+        await current.linkWithCredential(credential);
+      }
     } on firebase.FirebaseAuthException catch (error) {
       if (error.code == 'provider-already-linked') {
-        await current.reload();
-        final linked = PhoneNumber.nationalDigits(current.phoneNumber ?? '');
-        if (linked != PhoneNumber.nationalDigits(phoneNumber)) {
+        try {
+          await current.reauthenticateWithCredential(credential);
+        } on firebase.FirebaseAuthException catch (reauthError) {
           await _signOutValidator(validator);
-          throw const AuthException(
-            'This phone number is already linked to another account.',
-          );
+          throw AuthException(_messageForPhoneLink(reauthError));
         }
       } else {
         await _signOutValidator(validator);
@@ -476,6 +487,7 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
       case 'provider-already-linked':
         return 'A phone number is already linked to this account.';
       case 'invalid-verification-code':
+      case 'invalid-credential':
         return 'That code is incorrect. Check it and try again.';
       case 'session-expired':
       case 'invalid-verification-id':
@@ -493,14 +505,10 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
     final detail = (error.message ?? '').toLowerCase();
     if (detail.contains('billing_not_enabled') ||
         detail.contains('billing not enabled')) {
-      return 'This number is not in the Firebase test list. Add it under '
-          'Authentication → Sign-in method → Phone → Phone numbers for '
-          'testing, or enable billing for real SMS.';
+      return 'This phone number is not in the Firebase test list. Please use a registered test number.';
     }
     if (detail.contains('region')) {
-      return 'SMS verification is not enabled for Nepal yet. In the Firebase '
-          'console, open Authentication → Settings → SMS region policy and '
-          'allow Nepal (or allow all regions).';
+      return 'SMS verification is not available for this region. Please use a registered test number.';
     }
 
     switch (error.code) {
@@ -519,14 +527,14 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
       case 'quota-exceeded':
         return 'Too many verification attempts. Please wait and try again.';
       case 'billing-not-enabled':
-        return 'SMS verification is not enabled for this Firebase project.';
+        return 'This phone number is not in the Firebase test list. Please use a registered test number.';
       case 'captcha-check-failed':
       case 'missing-client-identifier':
         return 'This device could not complete verification. Try again.';
       case 'network-request-failed':
         return AppStrings.networkError;
       case 'operation-not-allowed':
-        return 'Phone sign-in is not enabled in the Firebase console.';
+        return 'This phone number is not in the Firebase test list. Please use a registered test number.';
       case 'app-not-authorized':
       case 'invalid-api-key':
         return 'Firebase is not configured correctly for this app.';

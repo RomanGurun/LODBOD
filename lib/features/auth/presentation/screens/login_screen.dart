@@ -185,11 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.password],
             validator: Validators.password,
-            onSubmitted: (_) {
-              if (!ref.read(phoneAuthControllerProvider).isSending) {
-                _sendOtp();
-              }
-            },
+            onSubmitted: (_) => FocusScope.of(context).unfocus(),
             suffixIcon: IconButton(
               tooltip:
                   _obscurePhonePassword ? 'Show password' : 'Hide password',
@@ -246,11 +242,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             obscureText: _obscureEmailPassword,
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.password],
-            onSubmitted: (_) {
-              if (!ref.read(authNotifierProvider).isLoading) {
-                _submitEmail();
-              }
-            },
+            onSubmitted: (_) => FocusScope.of(context).unfocus(),
             validator: Validators.password,
             suffixIcon: IconButton(
               tooltip:

@@ -163,9 +163,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       hint: 'Re-enter your password',
                       obscureText: _obscureConfirmPassword,
                       textInputAction: TextInputAction.done,
-                      onSubmitted: (_) {
-                        if (!isLoading) _submit();
-                      },
+                      onSubmitted: (_) => FocusScope.of(context).unfocus(),
                       validator: (v) => Validators.confirmPassword(
                         v,
                         _passwordController.text,

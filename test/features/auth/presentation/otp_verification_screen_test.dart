@@ -60,6 +60,12 @@ void main() {
         .request(phoneNumber: phone, password: password);
   }
 
+  Future<void> enterCode(WidgetTester tester, String code) async {
+    for (var i = 0; i < code.length && i < 6; i++) {
+      await tester.enterText(find.byType(TextFormField).at(i), code[i]);
+    }
+  }
+
   Future<void> disposeScreen(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -73,7 +79,7 @@ void main() {
     expect(find.text('Verify your number'), findsOneWidget);
     expect(find.textContaining('+977 98******78'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextFormField), '123456');
+    await enterCode(tester, '123456');
     await tester.tap(find.widgetWithText(FilledButton, 'Verify & continue'));
     await tester.pumpAndSettle();
 
@@ -84,12 +90,29 @@ void main() {
     await disposeScreen(tester);
   });
 
+  testWidgets(
+      'pasting a 6-digit code into the first box distributes across all boxes',
+      (tester) async {
+    await sendOtp();
+    await pumpScreen(tester);
+
+    await tester.enterText(find.byType(TextFormField).first, '654321');
+    await tester.pump();
+
+    for (var i = 0; i < 6; i++) {
+      final field =
+          tester.widget<TextFormField>(find.byType(TextFormField).at(i));
+      expect(field.controller?.text, '${6 - i}');
+    }
+    await disposeScreen(tester);
+  });
+
   testWidgets('shows the Firebase error and deletes all digits for a wrong code',
       (tester) async {
     await sendOtp();
     await pumpScreen(tester);
 
-    await tester.enterText(find.byType(TextFormField), '000000');
+    await enterCode(tester, '000000');
     await tester.tap(find.widgetWithText(FilledButton, 'Verify & continue'));
     await tester.pumpAndSettle();
 
@@ -98,9 +121,12 @@ void main() {
       find.text('That code is incorrect. Check it and try again.'),
       findsOneWidget,
     );
-    // Deletes all OTP input so fields are emptied
-    final field = tester.widget<TextFormField>(find.byType(TextFormField));
-    expect(field.controller?.text, isEmpty);
+    // Deletes all 6 individual OTP input boxes so they are emptied
+    for (var i = 0; i < 6; i++) {
+      final field =
+          tester.widget<TextFormField>(find.byType(TextFormField).at(i));
+      expect(field.controller?.text, isEmpty);
+    }
 
     expect(container.read(authNotifierProvider).valueOrNull, isNull);
     await disposeScreen(tester);
@@ -110,7 +136,7 @@ void main() {
     await sendOtp();
     await pumpScreen(tester);
 
-    await tester.enterText(find.byType(TextFormField), '12');
+    await enterCode(tester, '12');
     await tester.tap(find.widgetWithText(FilledButton, 'Verify & continue'));
     await tester.pumpAndSettle();
 
@@ -128,7 +154,7 @@ void main() {
     await disposeScreen(tester);
   });
 
-  testWidgets('renders responsively on narrow 320px screens without overflow',
+  testWidgets('renders 6 responsive boxes on narrow 320px screens without overflow',
       (tester) async {
     tester.view.physicalSize = const Size(320 * 2.0, 640 * 2.0);
     tester.view.devicePixelRatio = 2.0;
@@ -140,7 +166,8 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Verify your number'), findsOneWidget);
-    expect(find.byType(TextFormField), findsOneWidget);
+    // Verifies 6 individual boxes are rendered
+    expect(find.byType(TextFormField), findsNWidgets(6));
     await disposeScreen(tester);
   });
 
