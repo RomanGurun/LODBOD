@@ -53,7 +53,14 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final shipments = ref.watch(shipmentNotifierProvider);
+    // Filtering runs inside the provider layer so it stays unit-testable
+    // and the screen only rebuilds what it watches.
+    final filter = ShipmentFilter(
+      query: _query,
+      status: _status,
+      activeOnly: _activeOnly,
+    );
+    final shipments = ref.watch(filteredShipmentsProvider(filter));
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.shipments)),
@@ -141,12 +148,7 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
                     ref.read(shipmentNotifierProvider.notifier).refresh(),
               ),
               data: (list) {
-                final filtered = ShipmentFilter(
-                  query: _query,
-                  status: _status,
-                  activeOnly: _activeOnly,
-                ).apply(list);
-                if (filtered.isEmpty) {
+                if (list.isEmpty) {
                   return const EmptyState(
                     title: AppStrings.noShipmentsFound,
                     subtitle: AppStrings.noShipmentsSubtitle,
@@ -158,11 +160,11 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
                       ref.read(shipmentNotifierProvider.notifier).refresh(),
                   child: ListView.separated(
                     padding: const EdgeInsets.all(AppSizes.screenHorizontal),
-                    itemCount: filtered.length,
+                    itemCount: list.length,
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 12),
                     itemBuilder: (context, index) =>
-                        _ShipmentTile(shipment: filtered[index]),
+                        _ShipmentTile(shipment: list[index]),
                   ),
                 );
               },

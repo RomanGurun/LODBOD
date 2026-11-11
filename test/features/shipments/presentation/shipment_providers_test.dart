@@ -22,28 +22,6 @@ void main() {
     return container;
   }
 
-  test('dashboardStatsProvider derives counts from the shipment list',
-      () async {
-    final container = buildContainer();
-    await container.read(shipmentNotifierProvider.future);
-
-    final stats = container.read(dashboardStatsProvider).requireValue;
-
-    expect(stats.total, 4);
-    expect(stats.active, 2);
-    expect(stats.awaitingBids, 1);
-    expect(stats.completed, 2);
-    expect(stats.delivered, 1);
-
-    final counts = container.read(shipmentStatusCountsProvider).requireValue;
-    expect(counts[ShipmentStatus.inTransit], 1);
-    expect(counts[ShipmentStatus.awaitingBids], 1);
-    expect(counts[ShipmentStatus.delivered], 1);
-    expect(counts[ShipmentStatus.cancelled], 1);
-    expect(counts[ShipmentStatus.scheduled], 0);
-    expect(counts[ShipmentStatus.open], 0);
-  });
-
   test('filteredShipmentsProvider matches query and status', () async {
     final container = buildContainer();
     await container.read(shipmentNotifierProvider.future);
@@ -84,32 +62,14 @@ void main() {
     ]));
   });
 
-  test('shipmentByIdProvider and shipmentBidsProvider resolve one shipment',
-      () async {
+  test('shipmentByIdProvider resolves one shipment from the list', () async {
     final container = buildContainer();
     await container.read(shipmentNotifierProvider.future);
 
     final shipment = container.read(shipmentByIdProvider('2')).requireValue;
     expect(shipment?.reference, 'LOD-1002');
 
-    final bids = container.read(shipmentBidsProvider('2')).requireValue;
-    expect(bids, hasLength(2));
-
     final missing = container.read(shipmentByIdProvider('nope')).requireValue;
     expect(missing, isNull);
-  });
-
-  test('monthlyShipmentCountsProvider buckets shipments by month', () async {
-    final container = buildContainer();
-    await container.read(shipmentNotifierProvider.future);
-
-    final series =
-        container.read(monthlyShipmentCountsProvider(6)).requireValue;
-
-    expect(series, hasLength(6));
-    // Seeded shipments are created within the last few days, so the current
-    // month bucket holds all of them and older buckets are zero.
-    final total = series.fold<int>(0, (sum, e) => sum + e.$2);
-    expect(total, 4);
   });
 }

@@ -8,7 +8,8 @@ import 'package:lodbod/features/shipments/domain/enums/shipment_status.dart';
 import 'package:lodbod/shared/widgets/state_views.dart';
 import 'package:lodbod/features/shipments/presentation/widgets/status_badge.dart';
 import 'package:lodbod/features/shipments/presentation/providers/shipment_notifier.dart';
-import 'package:lodbod/features/shipments/presentation/providers/shipment_providers.dart';
+import 'package:lodbod/features/dashboard/presentation/providers/dashboard_providers.dart';
+import 'package:lodbod/features/analytics/presentation/providers/analytics_providers.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});

@@ -21,6 +21,20 @@ void main() {
     return container;
   }
 
+  test('dashboardStatsProvider derives counts from the shipment list',
+      () async {
+    final container = buildContainer();
+    await container.read(shipmentNotifierProvider.future);
+
+    final stats = container.read(dashboardStatsProvider).requireValue;
+
+    expect(stats.total, 4);
+    expect(stats.active, 2);
+    expect(stats.awaitingBids, 1);
+    expect(stats.completed, 2);
+    expect(stats.delivered, 1);
+  });
+
   test('recentShipmentsProvider sorts by updatedAt and caps at three',
       () async {
     final container = buildContainer();

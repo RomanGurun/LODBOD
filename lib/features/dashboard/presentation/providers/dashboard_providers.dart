@@ -1,7 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:lodbod/features/dashboard/domain/entities/dashboard_stats.dart';
 import 'package:lodbod/features/shipments/domain/entities/shipment.dart';
 import 'package:lodbod/features/shipments/presentation/providers/shipment_notifier.dart';
+
+/// KPI counts for the dashboard stat cards, derived from the shipment
+/// list (the single source of truth) — never fetched or stored twice.
+final dashboardStatsProvider = Provider<AsyncValue<DashboardStats>>((ref) {
+  return ref
+      .watch(shipmentNotifierProvider)
+      .whenData(DashboardStats.fromShipments);
+});
 
 /// The most recently updated shipments, for the "Recent shipments" section.
 final recentShipmentsProvider = Provider<AsyncValue<List<Shipment>>>((ref) {

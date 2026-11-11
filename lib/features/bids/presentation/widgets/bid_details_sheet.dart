@@ -10,7 +10,7 @@ import 'package:lodbod/shared/extensions/string_ext.dart';
 import 'package:lodbod/features/shipments/domain/entities/bid.dart';
 import 'package:lodbod/features/shipments/domain/entities/shipment.dart';
 import 'package:lodbod/features/shipments/domain/enums/bid_status.dart';
-import 'package:lodbod/features/shipments/domain/enums/shipment_status.dart';
+import 'package:lodbod/features/shipments/domain/rules/bid_acceptance_rule.dart';
 import 'package:lodbod/features/shipments/presentation/providers/shipment_notifier.dart';
 
 /// Opens the full bid details bottom sheet: carrier profile, fare, ETA and
@@ -51,9 +51,9 @@ class _BidDetailsSheetState extends ConsumerState<BidDetailsSheet> {
   Bid get _bid => widget.bid;
   Shipment get _shipment => widget.shipment;
 
-  bool get _canAccept =>
-      _shipment.status == ShipmentStatus.awaitingBids &&
-      _bid.status == BidStatus.pending;
+  /// The same domain rule the repository enforces — one definition of
+  /// "this bid can be accepted", shared by UI and data layers.
+  bool get _canAccept => BidAcceptanceRule.canAccept(_shipment, _bid);
 
   Future<void> _accept() async {
     final confirmed = await showDialog<bool>(
