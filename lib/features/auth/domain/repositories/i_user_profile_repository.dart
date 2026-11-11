@@ -8,4 +8,3 @@ abstract class IUserProfileRepository {
   /// Create or update a user profile.
   Future<void> saveProfile(UserProfile profile);
 }
-

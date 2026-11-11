@@ -8,7 +8,8 @@ import 'package:lodbod/features/auth/domain/repositories/i_user_profile_reposito
 /// data source strategy. A profile saved while the fallback is active lives
 /// only for the current session — it is never reported as remotely stored.
 class ResilientUserProfileRepository implements IUserProfileRepository {
-  ResilientUserProfileRepository({required this.remote, required this.fallback});
+  ResilientUserProfileRepository(
+      {required this.remote, required this.fallback});
 
   final IUserProfileRepository remote;
   final IUserProfileRepository fallback;

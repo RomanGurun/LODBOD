@@ -58,7 +58,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
               _SettingsTile(
                 icon: Icons.person_outline,
                 label: 'Personal information',
-                onTap: () => _showPersonalInfo(context, profileAsync.valueOrNull),
+                onTap: () =>
+                    _showPersonalInfo(context, profileAsync.valueOrNull),
               ),
               const _TileDivider(),
               _SettingsTile(

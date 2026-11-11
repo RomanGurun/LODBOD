@@ -32,7 +32,8 @@ class AnalyticsScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => ErrorState(
             message: error.toString(),
-            onRetry: () => ref.read(shipmentNotifierProvider.notifier).refresh(),
+            onRetry: () =>
+                ref.read(shipmentNotifierProvider.notifier).refresh(),
           ),
           data: (counts) => ListView(
             padding: const EdgeInsets.all(AppSizes.screenHorizontal),
@@ -140,8 +141,18 @@ class _MonthlyBarChart extends StatelessWidget {
   final List<(DateTime, int)> series;
 
   static const List<String> _monthLabels = <String>[
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   @override
@@ -158,9 +169,9 @@ class _MonthlyBarChart extends StatelessWidget {
             touchTooltipData: BarTouchTooltipData(
               getTooltipItem: (group, groupIndex, rod, rodIndex) =>
                   BarTooltipItem(
-                    '${rod.toY.toInt()}',
-                    textTheme.labelMedium ?? const TextStyle(),
-                  ),
+                '${rod.toY.toInt()}',
+                textTheme.labelMedium ?? const TextStyle(),
+              ),
             ),
           ),
           titlesData: FlTitlesData(

@@ -86,4 +86,3 @@ class UserProfile {
   @override
   String toString() => 'UserProfile($uid, $name, $role)';
 }
-

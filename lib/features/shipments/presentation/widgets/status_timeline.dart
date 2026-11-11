@@ -9,7 +9,8 @@ import 'package:lodbod/features/shipments/domain/enums/shipment_status.dart';
 /// screens. Steps are derived from the current status only — there is no
 /// live event feed, so the timeline is indicative, not a live log.
 class StatusTimeline extends StatelessWidget {
-  const StatusTimeline({super.key, required this.shipment, this.compact = false});
+  const StatusTimeline(
+      {super.key, required this.shipment, this.compact = false});
 
   final Shipment shipment;
   final bool compact;
@@ -89,7 +90,10 @@ class StatusTimeline extends StatelessWidget {
 
     final labels = <(String, String)>[
       ('Posted', shipment.createdAt.formatShort()),
-      ('Bids received', shipment.bidCount == 0 ? '' : '${shipment.bidCount} bids'),
+      (
+        'Bids received',
+        shipment.bidCount == 0 ? '' : '${shipment.bidCount} bids'
+      ),
       ('Carrier confirmed', shipment.updatedAt.formatShort()),
       ('In transit', ''),
       ('Delivered', ''),

@@ -112,8 +112,8 @@ class _DashboardContent extends ConsumerWidget {
                   icon: Icons.hourglass_empty,
                   iconColor: AppColors.statusOpen,
                   iconBackground: AppColors.statusOpenBg,
-                  onTap: () => context
-                      .go(AppRoutes.shipmentsFiltered('awaiting_bids')),
+                  onTap: () =>
+                      context.go(AppRoutes.shipmentsFiltered('awaiting_bids')),
                 ),
               ),
               const SizedBox(width: 12),

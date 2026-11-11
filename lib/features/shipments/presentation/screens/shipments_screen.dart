@@ -180,7 +180,8 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
     ShipmentStatus? status, {
     bool activeOnly = false,
   }) {
-    final selected = activeOnly ? _activeOnly : !_activeOnly && _status == status;
+    final selected =
+        activeOnly ? _activeOnly : !_activeOnly && _status == status;
     return Padding(
       padding: const EdgeInsets.only(right: AppSizes.sm),
       child: ChoiceChip(
@@ -242,7 +243,8 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
     ShipmentStatus? status, {
     bool activeOnly = false,
   }) {
-    final selected = activeOnly ? _activeOnly : !_activeOnly && _status == status;
+    final selected =
+        activeOnly ? _activeOnly : !_activeOnly && _status == status;
     return ChoiceChip(
       label: Text(label),
       selected: selected,
@@ -378,7 +380,7 @@ class _ShipmentTile extends StatelessWidget {
                   const SizedBox(width: AppSizes.xs),
                   Text(
                     '${CargoCategory.fromWire(shipment.cargoCategory).label} · '
-                        'pickup ${shipment.pickupAt.formatShort()}',
+                    'pickup ${shipment.pickupAt.formatShort()}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: textTheme.bodySmall?.copyWith(

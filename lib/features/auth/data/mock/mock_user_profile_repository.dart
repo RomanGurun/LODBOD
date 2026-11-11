@@ -15,4 +15,3 @@ class MockUserProfileRepository implements IUserProfileRepository {
     _store[profile.uid] = profile;
   }
 }
-

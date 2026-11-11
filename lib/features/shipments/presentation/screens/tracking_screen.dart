@@ -122,7 +122,8 @@ class _TrackingContent extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+                        borderRadius:
+                            BorderRadius.circular(AppSizes.radiusPill),
                         border: Border.all(color: AppColors.border),
                       ),
                       child: Row(
@@ -215,7 +216,6 @@ class _TrackingContent extends StatelessWidget {
                 const SizedBox(height: 24),
                 const Divider(),
                 const SizedBox(height: 16),
-
                 Text(
                   'Status',
                   style: textTheme.labelSmall?.copyWith(
@@ -226,7 +226,6 @@ class _TrackingContent extends StatelessWidget {
                 const SizedBox(height: 12),
                 StatusTimeline(shipment: shipment),
                 const SizedBox(height: 16),
-
                 Text(
                   'Carrier',
                   style: textTheme.labelSmall?.copyWith(
@@ -242,7 +241,6 @@ class _TrackingContent extends StatelessWidget {
                 const SizedBox(height: 24),
                 const Divider(),
                 const SizedBox(height: 16),
-
                 Text(
                   'Cargo',
                   style: textTheme.labelSmall?.copyWith(
@@ -269,7 +267,6 @@ class _TrackingContent extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
-
                 OutlinedButton.icon(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(

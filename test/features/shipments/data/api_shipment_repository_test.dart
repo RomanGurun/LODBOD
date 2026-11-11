@@ -247,7 +247,9 @@ void main() {
     // The repository also fetches /bids for the shipments; answer that path
     // with an empty list so only shipment rows are parsed.
     final repo = _repository((options) {
-      if (options.path.endsWith('/bids')) return _json(<Map<String, dynamic>>[]);
+      if (options.path.endsWith('/bids')) {
+        return _json(<Map<String, dynamic>>[]);
+      }
       return _json(shipments);
     });
 

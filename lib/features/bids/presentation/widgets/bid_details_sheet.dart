@@ -220,8 +220,7 @@ class _BidDetailsSheetState extends ConsumerState<BidDetailsSheet> {
             _DetailRow(
               icon: Icons.schedule,
               label: 'Delivery time',
-              value:
-                  '${_bid.etaDays} day${_bid.etaDays == 1 ? '' : 's'}',
+              value: '${_bid.etaDays} day${_bid.etaDays == 1 ? '' : 's'}',
             ),
             _DetailRow(
               icon: Icons.event_available,

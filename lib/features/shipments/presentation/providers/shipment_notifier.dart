@@ -77,8 +77,7 @@ class ShipmentNotifier extends AsyncNotifier<List<Shipment>> {
 
     // Only the owning shipper may accept bids on a shipment.
     final user = ref.read(authNotifierProvider).valueOrNull;
-    if (user == null ||
-        !ShipmentOwnership.isOwnedBy(current[index], user.id)) {
+    if (user == null || !ShipmentOwnership.isOwnedBy(current[index], user.id)) {
       throw const ForbiddenException(
         'You can only accept bids on your own shipments.',
       );

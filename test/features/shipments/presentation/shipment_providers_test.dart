@@ -43,8 +43,7 @@ void main() {
     expect(delivered.single.reference, 'LOD-1003');
   });
 
-  test('filteredShipmentsProvider supports the active-only grouping',
-      () async {
+  test('filteredShipmentsProvider supports the active-only grouping', () async {
     final container = buildContainer();
     await container.read(shipmentNotifierProvider.future);
 
@@ -56,10 +55,12 @@ void main() {
 
     // Seeds: in_transit + awaiting_bids are active; delivered and cancelled
     // are excluded.
-    expect(active.map((s) => s.reference), unorderedEquals(<String>[
-      'LOD-1001',
-      'LOD-1002',
-    ]));
+    expect(
+        active.map((s) => s.reference),
+        unorderedEquals(<String>[
+          'LOD-1001',
+          'LOD-1002',
+        ]));
   });
 
   test('shipmentByIdProvider resolves one shipment from the list', () async {

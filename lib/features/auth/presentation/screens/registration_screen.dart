@@ -202,8 +202,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   ),
                   suffixIcon: IconButton(
                     onPressed: () => setState(
-                      () => _obscureConfirmPassword =
-                          !_obscureConfirmPassword,
+                      () => _obscureConfirmPassword = !_obscureConfirmPassword,
                     ),
                     icon: Icon(
                       _obscureConfirmPassword

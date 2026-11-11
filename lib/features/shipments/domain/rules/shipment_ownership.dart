@@ -31,8 +31,6 @@ class ShipmentOwnership {
 
   /// Filters [shipments] down to those owned by [uid].
   static List<Shipment> ownedBy(Iterable<Shipment> shipments, String uid) {
-    return shipments
-        .where((shipment) => isOwnedBy(shipment, uid))
-        .toList();
+    return shipments.where((shipment) => isOwnedBy(shipment, uid)).toList();
   }
 }
