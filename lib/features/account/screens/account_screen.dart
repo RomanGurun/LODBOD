@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_strings.dart';
+import '../../../core/errors/app_exception.dart';
+import '../../../core/extensions/date_ext.dart';
 import '../../../core/extensions/string_ext.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../domain/entities/user_profile.dart';
 import '../../auth/providers/auth_notifier.dart';
 
 class AccountScreen extends ConsumerStatefulWidget {
@@ -14,7 +17,6 @@ class AccountScreen extends ConsumerStatefulWidget {
 }
 
 class _AccountScreenState extends ConsumerState<AccountScreen> {
-  bool _darkMode = false;
   bool _pushNotifications = true;
   bool _smsAlerts = false;
   bool _emailDigest = true;
@@ -24,7 +26,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     final authState = ref.watch(authNotifierProvider);
     final user = authState.valueOrNull;
     final isLoading = authState.isLoading;
-    final displayName = user?.displayName ?? 'Shipper';
+    final profileAsync = ref.watch(userProfileProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.account)),
@@ -34,112 +36,125 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         ),
         children: [
           const SizedBox(height: 20),
-          // Profile card — h=70
-          _ProfileCard(
-            name: displayName,
-            initials: displayName.initials,
-            company: 'LODBOD Logistics',
-            role: 'Admin',
+          // Profile card — real Firestore/auth identity.
+          profileAsync.when(
+            loading: () => const _ProfileSkeleton(),
+            error: (_, __) => _ProfileCard(
+              name: user?.displayName ?? 'Shipper',
+              subtitle: user?.email ?? '—',
+            ),
+            data: (profile) => _ProfileCard(
+              name: profile?.name ?? user?.displayName ?? 'Shipper',
+              subtitle: profile?.email ?? user?.email ?? '—',
+            ),
           ),
           const SizedBox(height: 30),
 
-          // ACCOUNT section — h=95
-          _SectionLabel('ACCOUNT'),
+          // ACCOUNT section
+          const _SectionLabel('ACCOUNT'),
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
               _SettingsTile(
                 icon: Icons.person_outline,
                 label: 'Personal information',
-                onTap: () {},
-              ),
-              const _TileDivider(),
-              _SettingsTile(
-                icon: Icons.business_outlined,
-                label: 'Company details',
-                onTap: () {},
+                onTap: () => _showPersonalInfo(context, profileAsync.valueOrNull),
               ),
               const _TileDivider(),
               _SettingsTile(
                 icon: Icons.lock_outline,
                 label: 'Change password',
-                onTap: () {},
+                onTap: _changePassword,
               ),
             ],
           ),
           const SizedBox(height: 24),
 
-          // PREFERENCES section — h=132
-          _SectionLabel('PREFERENCES'),
+          // PREFERENCES section — local, session-scoped demo preferences.
+          const _SectionLabel('PREFERENCES'),
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
               _SwitchTile(
-                icon: Icons.dark_mode_outlined,
-                label: 'Dark mode',
-                value: _darkMode,
-                onChanged: (v) => setState(() => _darkMode = v),
-              ),
-              const _TileDivider(),
-              _SwitchTile(
                 icon: Icons.notifications_outlined,
                 label: 'Push notifications',
                 value: _pushNotifications,
-                onChanged: (v) => setState(() => _pushNotifications = v),
+                onChanged: (v) {
+                  setState(() => _pushNotifications = v);
+                  _prefSavedSnack();
+                },
               ),
               const _TileDivider(),
               _SwitchTile(
                 icon: Icons.sms_outlined,
                 label: 'SMS alerts',
                 value: _smsAlerts,
-                onChanged: (v) => setState(() => _smsAlerts = v),
+                onChanged: (v) {
+                  setState(() => _smsAlerts = v);
+                  _prefSavedSnack();
+                },
               ),
               const _TileDivider(),
               _SwitchTile(
                 icon: Icons.email_outlined,
                 label: 'Email digest',
                 value: _emailDigest,
-                onChanged: (v) => setState(() => _emailDigest = v),
+                onChanged: (v) {
+                  setState(() => _emailDigest = v);
+                  _prefSavedSnack();
+                },
               ),
             ],
           ),
           const SizedBox(height: 24),
 
-          // SUPPORT & FEEDBACK — h=63
-          _SectionLabel('SUPPORT & FEEDBACK'),
+          // SUPPORT & FEEDBACK
+          const _SectionLabel('SUPPORT & FEEDBACK'),
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
               _SettingsTile(
                 icon: Icons.help_outline,
                 label: 'Help centre',
-                onTap: () {},
+                onTap: () => _showPrototypeNote(
+                  context,
+                  'The help centre is not part of this prototype.',
+                ),
               ),
               const _TileDivider(),
               _SettingsTile(
                 icon: Icons.feedback_outlined,
                 label: 'Send feedback',
-                onTap: () {},
+                onTap: () => _showPrototypeNote(
+                  context,
+                  'Feedback submission is not part of this prototype.',
+                ),
               ),
             ],
           ),
           const SizedBox(height: 24),
 
-          // LEGAL & SECURITY — h=63
-          _SectionLabel('LEGAL & SECURITY'),
+          // LEGAL & SECURITY
+          const _SectionLabel('LEGAL & SECURITY'),
           const SizedBox(height: 8),
           _SettingsCard(
             children: [
               _SettingsTile(
                 icon: Icons.description_outlined,
                 label: 'Terms of service',
-                onTap: () {},
+                onTap: () => _showPrototypeNote(
+                  context,
+                  'Legal documents are not part of this prototype.',
+                ),
               ),
               const _TileDivider(),
               _SettingsTile(
                 icon: Icons.privacy_tip_outlined,
                 label: 'Privacy policy',
-                onTap: () {},
+                onTap: () => _showPrototypeNote(
+                  context,
+                  'Legal documents are not part of this prototype.',
+                ),
               ),
             ],
           ),
@@ -172,7 +187,11 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                 child: SizedBox(
                   height: 36,
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () => _showPrototypeNote(
+                      context,
+                      'Account deletion is not part of this prototype. '
+                      'Contact LODBOD support to remove an account.',
+                    ),
                     style: OutlinedButton.styleFrom(
                       minimumSize: Size.zero,
                       padding: EdgeInsets.zero,
@@ -191,6 +210,150 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
             ],
           ),
           const SizedBox(height: 30),
+        ],
+      ),
+    );
+  }
+
+  void _prefSavedSnack() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Preference saved for this demo session'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _showPersonalInfo(BuildContext context, UserProfile? profile) {
+    final user = ref.read(authNotifierProvider).valueOrNull;
+    final name = profile?.name.isNotEmpty == true
+        ? profile!.name
+        : user?.displayName ?? '—';
+    final email =
+        profile?.email.isNotEmpty == true ? profile!.email : user?.email ?? '—';
+    final phone = (profile?.phone ?? '').trim().isNotEmpty
+        ? profile!.phone
+        : 'Not provided';
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizes.radiusXl),
+        ),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Personal information',
+                style: Theme.of(sheetContext)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              _ProfileInfoRow(label: 'Name', value: name),
+              _ProfileInfoRow(label: 'Email', value: email),
+              _ProfileInfoRow(label: 'Phone', value: phone),
+              const _ProfileInfoRow(label: 'Role', value: 'Shipper'),
+              _ProfileInfoRow(
+                label: 'Member since',
+                value: profile?.createdAt.formatDisplay() ?? '—',
+              ),
+              _ProfileInfoRow(label: 'Account ID', value: user?.id ?? '—'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Real password reset through Firebase Auth's email flow. Demo accounts
+  /// are local-only and are rejected honestly.
+  Future<void> _changePassword() async {
+    final user = ref.read(authNotifierProvider).valueOrNull;
+    final email = user?.email ?? '';
+    final controller = TextEditingController(text: email);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Change password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'We will send a password reset link to your email address.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: AppStrings.emailOrPhone,
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(AppStrings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Send link'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref
+          .read(authNotifierProvider.notifier)
+          .sendPasswordResetEmail(controller.text.trim());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent. Check your inbox.'),
+        ),
+      );
+    } on AppException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.genericError)),
+      );
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  void _showPrototypeNote(BuildContext context, String message) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Not available yet'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text(AppStrings.gotIt),
+          ),
         ],
       ),
     );
@@ -227,17 +390,10 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
 // ─── Profile Card ────────────────────────────────────────────────────────────
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard({
-    required this.name,
-    required this.initials,
-    required this.company,
-    required this.role,
-  });
+  const _ProfileCard({required this.name, required this.subtitle});
 
   final String name;
-  final String initials;
-  final String company;
-  final String role;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +412,7 @@ class _ProfileCard extends StatelessWidget {
             radius: 20,
             backgroundColor: AppColors.primary,
             child: Text(
-              initials,
+              name.initials,
               style: textTheme.titleSmall?.copyWith(
                 color: AppColors.textOnPrimary,
                 fontWeight: FontWeight.w700,
@@ -279,7 +435,7 @@ class _ProfileCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$company • $role',
+                  '$subtitle • Shipper',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: textTheme.bodySmall?.copyWith(
@@ -294,6 +450,94 @@ class _ProfileCard extends StatelessWidget {
             Icons.chevron_right,
             size: 20,
             color: AppColors.textHint,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileSkeleton extends StatelessWidget {
+  const _ProfileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceVariant,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 140,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: 180,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileInfoRow extends StatelessWidget {
+  const _ProfileInfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: textTheme.bodyMedium,
+            ),
           ),
         ],
       ),

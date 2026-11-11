@@ -32,6 +32,7 @@ class AppStrings {
   static const String pendingShipments = 'Pending';
   static const String awaitingBids = 'Awaiting Bids';
   static const String completedShipments = 'Completed';
+  static const String deliveredShipments = 'Delivered';
   static const String recentShipments = 'Recent shipments';
   static const String postLoad = 'Post a Load';
   static const String postLoadCta = '+ Post Load';
@@ -142,6 +143,7 @@ class AppStrings {
   static const String invalidCredentials = 'Invalid email/phone or password';
   static const String passwordTooShort =
       'Password must be at least 6 characters';
+  static const String passwordMismatch = 'Passwords do not match';
 
   // API
   static const String baseUrl = 'https://YOUR_MOCKAPI_ID.mockapi.io/api/v1';

@@ -24,17 +24,18 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
-  final _companyController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _companyController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -45,6 +46,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
           displayName: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
         );
   }
 
@@ -132,8 +134,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   hint: 'John Doe',
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.name],
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  validator: Validators.required,
                 ),
                 const SizedBox(height: 20),
                 AppTextField(
@@ -154,8 +155,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       ),
                     ),
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  validator: Validators.phone,
                 ),
                 const SizedBox(height: 20),
                 AppTextField(
@@ -169,29 +169,44 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 ),
                 const SizedBox(height: 20),
                 AppTextField(
-                  controller: _companyController,
-                  label: 'Company name',
-                  hint: 'Your company',
-                  textInputAction: TextInputAction.next,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 20),
-                AppTextField(
                   controller: _passwordController,
                   label: 'Password',
                   hint: 'Min 6 characters',
                   obscureText: _obscurePassword,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) {
-                    if (!isLoading) _submit();
-                  },
+                  textInputAction: TextInputAction.next,
                   validator: Validators.password,
                   suffixIcon: IconButton(
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
                     icon: Icon(
                       _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: AppSizes.iconMd,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                AppTextField(
+                  controller: _confirmPasswordController,
+                  label: 'Confirm password',
+                  hint: 'Re-enter your password',
+                  obscureText: _obscureConfirmPassword,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    if (!isLoading) _submit();
+                  },
+                  validator: (v) => Validators.confirmPassword(
+                    v,
+                    _passwordController.text,
+                  ),
+                  suffixIcon: IconButton(
+                    onPressed: () => setState(
+                      () => _obscureConfirmPassword =
+                          !_obscureConfirmPassword,
+                    ),
+                    icon: Icon(
+                      _obscureConfirmPassword
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
                       size: AppSizes.iconMd,

@@ -5,6 +5,8 @@ import 'package:lodbod/data/mock/mock_shipment_repository.dart';
 import 'package:lodbod/features/shipments/screens/shipments_screen.dart';
 import 'package:lodbod/shared/providers/repository_providers.dart';
 
+import '../support/fake_auth.dart';
+
 void main() {
   Future<void> pumpScreen(WidgetTester tester) async {
     await tester.pumpWidget(
@@ -13,6 +15,7 @@ void main() {
           shipmentRepositoryProvider.overrideWithValue(
             MockShipmentRepository(latency: Duration.zero),
           ),
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
         ],
         child: const MaterialApp(home: ShipmentsScreen()),
       ),

@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/data/mock/mock_shipment_repository.dart';
 import 'package:lodbod/data/mock/seed_data.dart';
 import 'package:lodbod/data/models/shipment_model.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
 import 'package:lodbod/features/create/screens/create_shipment_screen.dart';
+import 'package:lodbod/features/create/screens/order_placed_screen.dart';
 import 'package:lodbod/shared/providers/repository_providers.dart';
+
+import '../support/fake_auth.dart';
 
 void main() {
   Finder fieldWithHint(String hint) {
@@ -28,18 +33,36 @@ void main() {
     );
   }
 
+  /// Pumps the create screen inside a minimal GoRouter so the post-submit
+  /// navigation to the order confirmation screen works like production.
   Future<void> pumpForm(
     WidgetTester tester, {
     MockShipmentRepository? repository,
   }) async {
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/',
+          builder: (context, state) => const CreateShipmentScreen(),
+        ),
+        GoRoute(
+          path: '/order-placed',
+          builder: (context, state) => state.extra is Shipment
+              ? OrderPlacedScreen.fromShipment(state.extra! as Shipment)
+              : const OrderPlacedScreen(),
+        ),
+      ],
+    );
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
           shipmentRepositoryProvider.overrideWithValue(
             repository ?? MockShipmentRepository(latency: Duration.zero),
           ),
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
         ],
-        child: const MaterialApp(home: CreateShipmentScreen()),
+        child: MaterialApp.router(routerConfig: router),
       ),
     );
     await tester.pumpAndSettle();
@@ -108,7 +131,7 @@ void main() {
     expect(pickup.controller?.text, 'Kathmandu');
   });
 
-  testWidgets('creates a shipment when below the active limit', (tester) async {
+  testWidgets('creates a shipment and shows the confirmation', (tester) async {
     await pumpForm(tester);
     await fillToReview(tester);
 
@@ -117,8 +140,10 @@ void main() {
     await tester.tap(find.text(AppStrings.submit));
     await tester.pumpAndSettle();
 
-    expect(find.text(AppStrings.shipmentCreated), findsOneWidget);
-    expect(find.textContaining('LOD-1005'), findsOneWidget);
+    // The order confirmation screen is shown only after real persistence.
+    expect(find.text('Order placed'), findsOneWidget);
+    // The reference appears in the header message and the summary row.
+    expect(find.textContaining('LOD-1005'), findsWidgets);
   });
 
   testWidgets('blocks the first step until required fields are filled',

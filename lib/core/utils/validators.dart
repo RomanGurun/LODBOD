@@ -33,9 +33,24 @@ class Validators {
     return null;
   }
 
+  static String? phone(String? value) {
+    if (value == null || value.trim().isEmpty) return AppStrings.fieldRequired;
+    if (!RegExp(r'^[0-9]{10}$').hasMatch(value.trim())) {
+      return AppStrings.invalidPhone;
+    }
+    return null;
+  }
+
   static String? password(String? value) {
     if (value == null || value.isEmpty) return AppStrings.fieldRequired;
     if (value.length < 6) return AppStrings.passwordTooShort;
+    return null;
+  }
+
+  /// Confirm-password validator: both fields must match exactly.
+  static String? confirmPassword(String? value, String password) {
+    if (value == null || value.isEmpty) return AppStrings.fieldRequired;
+    if (value != password) return AppStrings.passwordMismatch;
     return null;
   }
 

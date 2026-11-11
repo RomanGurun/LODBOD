@@ -101,6 +101,8 @@ class _DashboardContent extends ConsumerWidget {
                   icon: Icons.local_shipping,
                   iconColor: AppColors.primary,
                   iconBackground: AppColors.statusActiveBg,
+                  onTap: () =>
+                      context.go(AppRoutes.shipmentsFiltered('active')),
                 ),
               ),
               const SizedBox(width: 12),
@@ -111,16 +113,20 @@ class _DashboardContent extends ConsumerWidget {
                   icon: Icons.hourglass_empty,
                   iconColor: AppColors.statusOpen,
                   iconBackground: AppColors.statusOpenBg,
+                  onTap: () => context
+                      .go(AppRoutes.shipmentsFiltered('awaiting_bids')),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: DashboardStatCard(
                   value: stats.delivered,
-                  label: AppStrings.completedShipments,
+                  label: AppStrings.deliveredShipments,
                   icon: Icons.check_circle,
                   iconColor: AppColors.statusDelivered,
                   iconBackground: AppColors.statusDeliveredBg,
+                  onTap: () =>
+                      context.go(AppRoutes.shipmentsFiltered('delivered')),
                 ),
               ),
             ],

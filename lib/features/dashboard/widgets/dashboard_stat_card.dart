@@ -5,6 +5,7 @@ import '../../../core/constants/app_sizes.dart';
 import '../../../shared/widgets/app_card.dart';
 
 /// A single dashboard metric: tinted icon circle, big number and label.
+/// Tapping it opens the shipments list filtered to this metric.
 class DashboardStatCard extends StatelessWidget {
   const DashboardStatCard({
     super.key,
@@ -13,6 +14,7 @@ class DashboardStatCard extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.iconBackground,
+    this.onTap,
   });
 
   final int value;
@@ -20,12 +22,14 @@ class DashboardStatCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final Color iconBackground;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return AppCard(
+      onTap: onTap,
       borderRadius: AppSizes.radiusLg,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       child: Column(

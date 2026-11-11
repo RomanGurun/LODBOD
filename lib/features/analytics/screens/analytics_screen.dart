@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +8,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../domain/enums/shipment_status.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../../shipments/providers/shipment_notifier.dart';
 import '../../shipments/providers/shipment_providers.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
@@ -16,15 +18,22 @@ class AnalyticsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(dashboardStatsProvider);
     final statusCounts = ref.watch(shipmentStatusCountsProvider);
+    final monthly = ref.watch(monthlyShipmentCountsProvider(6));
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.analytics)),
       body: stats.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ErrorState(message: error.toString()),
+        error: (error, _) => ErrorState(
+          message: error.toString(),
+          onRetry: () => ref.read(shipmentNotifierProvider.notifier).refresh(),
+        ),
         data: (value) => statusCounts.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => ErrorState(message: error.toString()),
+          error: (error, _) => ErrorState(
+            message: error.toString(),
+            onRetry: () => ref.read(shipmentNotifierProvider.notifier).refresh(),
+          ),
           data: (counts) => ListView(
             padding: const EdgeInsets.all(AppSizes.screenHorizontal),
             children: [
@@ -58,6 +67,37 @@ class AnalyticsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSizes.lg),
               Text(
+                'Loads created per month',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: AppSizes.md),
+              Container(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSizes.md,
+                  AppSizes.md,
+                  AppSizes.md,
+                  AppSizes.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                ),
+                child: monthly.when(
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  error: (error, _) => ErrorState(message: error.toString()),
+                  data: (series) => _MonthlyBarChart(series: series),
+                ),
+              ),
+              const SizedBox(height: AppSizes.lg),
+              Text(
                 'Status breakdown',
                 style: Theme.of(context)
                     .textTheme
@@ -85,6 +125,96 @@ class AnalyticsScreen extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shipments created per month, computed from real shipment `createdAt`
+/// values over the last six months.
+class _MonthlyBarChart extends StatelessWidget {
+  const _MonthlyBarChart({required this.series});
+
+  /// Oldest-first list of (month, count) pairs.
+  final List<(DateTime, int)> series;
+
+  static const List<String> _monthLabels = <String>[
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final maxY = series.fold<int>(0, (max, e) => e.$2 > max ? e.$2 : max);
+
+    return SizedBox(
+      height: 180,
+      child: BarChart(
+        BarChartData(
+          maxY: (maxY + 1).toDouble(),
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipItem: (group, groupIndex, rod, rodIndex) =>
+                  BarTooltipItem(
+                    '${rod.toY.toInt()}',
+                    textTheme.labelMedium ?? const TextStyle(),
+                  ),
+            ),
+          ),
+          titlesData: FlTitlesData(
+            leftTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (value, meta) {
+                  final index = value.toInt();
+                  if (index < 0 || index >= series.length) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      _monthLabels[series[index].$1.month - 1],
+                      style: textTheme.labelSmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          gridData: const FlGridData(show: false),
+          borderData: FlBorderData(show: false),
+          barGroups: <BarChartGroupData>[
+            for (var i = 0; i < series.length; i++)
+              BarChartGroupData(
+                x: i,
+                barRods: <BarChartRodData>[
+                  BarChartRodData(
+                    toY: series[i].$2.toDouble(),
+                    width: 18,
+                    color: series[i].$2 == 0
+                        ? AppColors.surfaceVariant
+                        : AppColors.primary,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(4),
+                    ),
+                  ),
+                ],
+              ),
+          ],
         ),
       ),
     );

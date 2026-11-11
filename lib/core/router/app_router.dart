@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/entities/auth_user.dart';
+import '../../domain/entities/shipment.dart';
 import '../../features/account/screens/account_screen.dart';
 import '../../features/analytics/screens/analytics_screen.dart';
 import '../../features/auth/providers/auth_notifier.dart';
@@ -16,6 +17,7 @@ import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/home/screens/main_shell.dart';
 import '../../features/shipments/screens/shipment_detail_screen.dart';
 import '../../features/shipments/screens/shipments_screen.dart';
+import '../../features/tracking/screens/tracking_screen.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -32,6 +34,13 @@ class AppRoutes {
   static const String account = '/account';
 
   static String shipmentDetail(String id) => '$shipments/$id';
+  static String shipmentTracking(String id) => '$shipments/$id/tracking';
+
+  /// Deep-link into the shipments list with a pre-applied filter.
+  ///
+  /// `active` opens only active shipments; a status wire value (e.g.
+  /// `awaiting_bids`) opens the list filtered by that status.
+  static String shipmentsFiltered(String filter) => '$shipments?filter=$filter';
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -65,6 +74,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         return AppRoutes.login;
       }
 
+      // The confirmation page only makes sense straight after submission.
+      if (location == AppRoutes.orderPlaced && state.extra is! Shipment) {
+        return AppRoutes.shipments;
+      }
+
       if (onAuthFlow) return AppRoutes.home;
       return null;
     },
@@ -92,7 +106,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.orderPlaced,
         name: 'orderPlaced',
-        builder: (context, state) => const OrderPlacedScreen(),
+        builder: (context, state) {
+          final shipment = state.extra;
+          return shipment is Shipment
+              ? OrderPlacedScreen.fromShipment(shipment)
+              : const OrderPlacedScreen();
+        },
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -112,7 +131,13 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.shipments,
                 name: 'shipments',
-                builder: (context, state) => const ShipmentsScreen(),
+                builder: (context, state) {
+                  final filter = state.uri.queryParameters['filter'];
+                  return ShipmentsScreen(
+                    key: ValueKey<String>('shipments-$filter'),
+                    initialFilter: filter,
+                  );
+                },
                 routes: <RouteBase>[
                   GoRoute(
                     path: ':id',
@@ -120,6 +145,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => ShipmentDetailScreen(
                       shipmentId: state.pathParameters['id'] ?? '',
                     ),
+                    routes: <RouteBase>[
+                      GoRoute(
+                        path: 'tracking',
+                        name: 'tracking',
+                        builder: (context, state) => TrackingScreen(
+                          shipmentId: state.pathParameters['id'] ?? '',
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

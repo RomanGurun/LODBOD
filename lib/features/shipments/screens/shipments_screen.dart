@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_strings.dart';
-import '../../../core/router/app_router.dart';
+import '../../../core/extensions/date_ext.dart';
 import '../../../core/extensions/num_ext.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../domain/entities/shipment.dart';
+import '../../../domain/enums/cargo_category.dart';
 import '../../../domain/enums/shipment_status.dart';
+import '../../../domain/enums/vehicle_type.dart';
 import '../../../shared/widgets/skeletons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../../shared/widgets/status_badge.dart';
@@ -15,7 +18,10 @@ import '../providers/shipment_notifier.dart';
 import '../providers/shipment_providers.dart';
 
 class ShipmentsScreen extends ConsumerStatefulWidget {
-  const ShipmentsScreen({super.key});
+  const ShipmentsScreen({super.key, this.initialFilter});
+
+  /// Route deep-link filter: `active` or a [ShipmentStatus] wire value.
+  final String? initialFilter;
 
   @override
   ConsumerState<ShipmentsScreen> createState() => _ShipmentsScreenState();
@@ -25,6 +31,19 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   ShipmentStatus? _status;
+  bool _activeOnly = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final filter = widget.initialFilter;
+    if (filter == null || filter.isEmpty) return;
+    if (filter == 'active') {
+      _activeOnly = true;
+    } else {
+      _status = ShipmentStatus.fromWire(filter);
+    }
+  }
 
   @override
   void dispose() {
@@ -107,6 +126,7 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
               ),
               children: <Widget>[
                 _statusChip(AppStrings.allStatus, null),
+                _statusChip(AppStrings.activeShipments, null, activeOnly: true),
                 for (final status in ShipmentStatus.values)
                   _statusChip(status.label, status),
               ],
@@ -121,8 +141,11 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
                     ref.read(shipmentNotifierProvider.notifier).refresh(),
               ),
               data: (list) {
-                final filtered =
-                    ShipmentFilter(query: _query, status: _status).apply(list);
+                final filtered = ShipmentFilter(
+                  query: _query,
+                  status: _status,
+                  activeOnly: _activeOnly,
+                ).apply(list);
                 if (filtered.isEmpty) {
                   return const EmptyState(
                     title: AppStrings.noShipmentsFound,
@@ -150,14 +173,23 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
     );
   }
 
-  Widget _statusChip(String label, ShipmentStatus? status) {
+  Widget _statusChip(
+    String label,
+    ShipmentStatus? status, {
+    bool activeOnly = false,
+  }) {
+    final selected = activeOnly ? _activeOnly : !_activeOnly && _status == status;
     return Padding(
       padding: const EdgeInsets.only(right: AppSizes.sm),
       child: ChoiceChip(
         label: Text(label),
-        selected: _status == status,
-        onSelected: (selected) {
-          if (selected) setState(() => _status = status);
+        selected: selected,
+        onSelected: (chosen) {
+          if (!chosen) return;
+          setState(() {
+            _activeOnly = activeOnly;
+            _status = status;
+          });
         },
       ),
     );
@@ -188,6 +220,8 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
                 runSpacing: 8,
                 children: [
                   _filterChip(ctx, AppStrings.allStatus, null),
+                  _filterChip(ctx, AppStrings.activeShipments, null,
+                      activeOnly: true),
                   for (final s in ShipmentStatus.values)
                     _filterChip(ctx, s.label, s),
                 ],
@@ -200,13 +234,22 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
     );
   }
 
-  Widget _filterChip(BuildContext ctx, String label, ShipmentStatus? status) {
+  Widget _filterChip(
+    BuildContext ctx,
+    String label,
+    ShipmentStatus? status, {
+    bool activeOnly = false,
+  }) {
+    final selected = activeOnly ? _activeOnly : !_activeOnly && _status == status;
     return ChoiceChip(
       label: Text(label),
-      selected: _status == status,
-      onSelected: (selected) {
-        if (selected) {
-          setState(() => _status = status);
+      selected: selected,
+      onSelected: (chosen) {
+        if (chosen) {
+          setState(() {
+            _activeOnly = activeOnly;
+            _status = status;
+          });
           Navigator.of(ctx).pop();
         }
       },
@@ -214,7 +257,7 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
   }
 }
 
-// ─── Reworked Shipment Tile ──────────────────────────────────────────────────
+// ─── Shipment tile ───────────────────────────────────────────────────────────
 
 class _ShipmentTile extends StatelessWidget {
   const _ShipmentTile({required this.shipment});
@@ -241,7 +284,7 @@ class _ShipmentTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Row 1: Reference + Status badge
+              // Row 1: Reference + Status badge + fare
               Row(
                 children: [
                   Text(
@@ -251,6 +294,15 @@ class _ShipmentTile extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
+                  if (shipment.hasExpectedFare) ...<Widget>[
+                    Text(
+                      shipment.expectedFare.toNPR(),
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: AppSizes.sm),
+                  ],
                   StatusBadge(status: shipment.status),
                 ],
               ),
@@ -292,6 +344,45 @@ class _ShipmentTile extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.xs),
+
+              // Row 4: Vehicle and pickup schedule
+              Row(
+                children: [
+                  const Icon(
+                    Icons.local_shipping_outlined,
+                    size: AppSizes.iconSm,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: AppSizes.xs),
+                  Flexible(
+                    child: Text(
+                      VehicleType.fromWire(shipment.vehicleType).label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.md),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: AppSizes.iconSm,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: AppSizes.xs),
+                  Text(
+                    '${CargoCategory.fromWire(shipment.cargoCategory).label} · '
+                        'pickup ${shipment.pickupAt.formatShort()}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ],

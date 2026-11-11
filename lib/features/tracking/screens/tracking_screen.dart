@@ -2,244 +2,307 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/tokens.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_sizes.dart';
+import '../../../core/extensions/date_ext.dart';
+import '../../../core/extensions/num_ext.dart';
 import '../../../domain/entities/shipment.dart';
+import '../../../domain/enums/shipment_status.dart';
+import '../../../domain/enums/vehicle_type.dart';
+import '../../../shared/widgets/skeletons.dart';
+import '../../../shared/widgets/state_views.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../../../shared/widgets/status_timeline.dart';
+import '../../shipments/providers/shipment_notifier.dart';
+import '../../shipments/providers/shipment_providers.dart';
 
-/// Live-tracking screen (Tier 2) — map placeholder, ETA, carrier info.
+/// Shipment tracking screen.
+///
+/// ⚠️ All tracking information on this screen is **simulated** from the
+/// shipment's current status — there is no live GPS feed in this prototype.
+/// The ETA uses the accepted carrier bid's delivery estimate when available.
 class TrackingScreen extends ConsumerWidget {
-  const TrackingScreen({super.key, required this.shipment});
+  const TrackingScreen({super.key, required this.shipmentId});
+
+  final String shipmentId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shipmentAsync = ref.watch(shipmentByIdProvider(shipmentId));
+
+    return Scaffold(
+      body: shipmentAsync.when(
+        loading: () => const ShipmentDetailSkeleton(),
+        error: (error, _) => ErrorState(
+          message: error.toString(),
+          onRetry: () => ref.read(shipmentNotifierProvider.notifier).refresh(),
+        ),
+        data: (shipment) {
+          if (shipment == null) {
+            return const EmptyState(
+              title: 'Shipment not found',
+              subtitle: 'It may have been removed.',
+              icon: Icons.search_off,
+            );
+          }
+          return _TrackingContent(shipment: shipment);
+        },
+      ),
+    );
+  }
+}
+
+class _TrackingContent extends StatelessWidget {
+  const _TrackingContent({required this.shipment});
 
   final Shipment shipment;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final eta = _etaLabel;
 
-    return Scaffold(
-      body: Column(
-        children: [
-          // ── Map placeholder ──
-          Expanded(
-            flex: 4,
-            child: Stack(
-              children: [
-                Container(
-                  width: double.infinity,
-                  color: AppColors.surfaceVariant,
-                  child: const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.map_outlined,
-                          size: 48,
-                          color: AppColors.textTertiary,
+    return Column(
+      children: [
+        // ── Simulated route overview ──
+        Expanded(
+          flex: 4,
+          child: Stack(
+            children: [
+              Container(
+                width: double.infinity,
+                color: AppColors.surfaceVariant,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.route_outlined,
+                        size: 48,
+                        color: AppColors.textTertiary,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Simulated tracking',
+                        style: textTheme.titleSmall?.copyWith(
+                          color: AppColors.textSecondary,
                         ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Live map coming soon',
-                          style: TextStyle(
-                            fontFamily: AppTypography.fontFamily,
-                            fontSize: AppTypography.caption,
+                      ),
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40),
+                        child: Text(
+                          'Live GPS tracking is not part of this prototype. '
+                          'This preview is derived from the shipment status.',
+                          textAlign: TextAlign.center,
+                          style: textTheme.bodySmall?.copyWith(
                             color: AppColors.textTertiary,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Top bar
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 8,
-                  left: 12,
-                  right: 12,
-                  child: Row(
-                    children: [
-                      _CircleButton(
-                        icon: Icons.arrow_back,
-                        onTap: () => context.pop(),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius:
-                              BorderRadius.circular(AppSizes.radiusPill),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              shipment.reference,
-                              style: textTheme.titleSmall?.copyWith(
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            StatusBadge(status: shipment.status),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      _CircleButton(
-                        icon: Icons.my_location,
-                        onTap: () {},
                       ),
                     ],
                   ),
                 ),
-                // ETA overlay
-                Positioned(
-                  left: 12,
-                  bottom: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+              ),
+              // Top bar
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 8,
+                left: 12,
+                right: 12,
+                child: Row(
+                  children: [
+                    _CircleButton(
+                      icon: Icons.arrow_back,
+                      onTap: () => context.pop(),
                     ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                      boxShadow: AppColors.cardShadow,
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            shipment.reference,
+                            style: textTheme.titleSmall?.copyWith(
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          StatusBadge(status: shipment.status),
+                        ],
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Estimated arrival',
-                          style: textTheme.bodySmall?.copyWith(
-                            fontSize: 10,
-                            color: AppColors.textTertiary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '2h 30m',
-                          style: textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 22,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '42 km remaining',
-                          style: textTheme.bodySmall?.copyWith(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
+                    const Spacer(),
+                    const SizedBox(width: 38),
+                  ],
+                ),
+              ),
+              // Simulated ETA overlay
+              Positioned(
+                left: 12,
+                bottom: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                    boxShadow: AppColors.cardShadow,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Estimated arrival (simulated)',
+                        style: textTheme.bodySmall?.copyWith(
+                          fontSize: 10,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        eta,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 22,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── Bottom details panel ──
+        Expanded(
+          flex: 5,
+          child: Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(AppSizes.radiusXl),
+              ),
+            ),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+              children: [
+                Text(
+                  'Route',
+                  style: textTheme.labelSmall?.copyWith(
+                    letterSpacing: 1.0,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _RouteTimeline(
+                  pickup: shipment.pickupCity,
+                  pickupAddress: shipment.pickupAddress,
+                  destination: shipment.destinationCity,
+                  destinationAddress: shipment.destinationAddress,
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 16),
+
+                Text(
+                  'Status',
+                  style: textTheme.labelSmall?.copyWith(
+                    letterSpacing: 1.0,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                StatusTimeline(shipment: shipment),
+                const SizedBox(height: 16),
+
+                Text(
+                  'Carrier',
+                  style: textTheme.labelSmall?.copyWith(
+                    letterSpacing: 1.0,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _CarrierCard(
+                  name: shipment.assignedCarrier ?? 'Unassigned',
+                  vehicle: VehicleType.fromWire(shipment.vehicleType).label,
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 16),
+
+                Text(
+                  'Cargo',
+                  style: textTheme.labelSmall?.copyWith(
+                    letterSpacing: 1.0,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.inventory_2_outlined,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${shipment.cargoDescription} · '
+                        '${shipment.weight.toWeight(shipment.weightUnit)}',
+                        style: textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                OutlinedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Carrier contact is not available in this prototype',
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.phone_outlined),
+                  label: const Text('Contact carrier'),
                 ),
               ],
             ),
           ),
-
-          // ── Bottom details panel ──
-          Expanded(
-            flex: 5,
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(AppSizes.radiusXl),
-                ),
-              ),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-                children: [
-                  // Route info
-                  Text(
-                    'Route',
-                    style: textTheme.labelSmall?.copyWith(
-                      letterSpacing: 1.0,
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _RouteTimeline(
-                    pickup: shipment.pickupCity,
-                    pickupAddress: shipment.pickupAddress,
-                    destination: shipment.destinationCity,
-                    destinationAddress: shipment.destinationAddress,
-                  ),
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
-
-                  // Carrier info
-                  Text(
-                    'Carrier',
-                    style: textTheme.labelSmall?.copyWith(
-                      letterSpacing: 1.0,
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _CarrierCard(
-                    name: shipment.assignedCarrier ?? 'Unassigned',
-                    vehicle: shipment.vehicleType,
-                  ),
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
-
-                  // Cargo info
-                  Text(
-                    'Cargo',
-                    style: textTheme.labelSmall?.copyWith(
-                      letterSpacing: 1.0,
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.inventory_2_outlined,
-                        size: 18,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${shipment.cargoDescription} · '
-                          '${shipment.weight} ${shipment.weightUnit}',
-                          style: textTheme.bodyMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Contact carrier button
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content:
-                              Text('Carrier contact not available in demo'),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.phone_outlined),
-                    label: const Text('Contact carrier'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+
+  /// Simulated arrival estimate. Uses the accepted bid's carrier estimate
+  /// when the shipment has one; otherwise the planned pickup window.
+  String get _etaLabel {
+    final accepted = shipment.acceptedBid;
+    if (accepted != null) {
+      return accepted.estimatedDeliveryAt.formatDisplay();
+    }
+    if (shipment.status == ShipmentStatus.delivered) {
+      return shipment.updatedAt.formatDisplay();
+    }
+    return shipment.pickupAt.formatShort();
   }
 }
 
@@ -292,7 +355,6 @@ class _RouteTimeline extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Dots and line
           Column(
             children: [
               Container(
@@ -388,31 +450,10 @@ class _CarrierCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                vehicle.replaceAll('_', ' ').toUpperCase(),
+                vehicle,
                 style: textTheme.bodySmall?.copyWith(
                   fontSize: 11,
                   color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.statusDeliveredBg,
-            borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.verified, size: 14, color: AppColors.success),
-              const SizedBox(width: 4),
-              Text(
-                'Verified',
-                style: textTheme.labelSmall?.copyWith(
-                  color: AppColors.success,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],

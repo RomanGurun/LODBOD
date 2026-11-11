@@ -616,13 +616,13 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
           .createShipment(draft);
       if (!mounted) return;
       setState(() => _submitting = false);
-      await _showSuccessDialog(created.reference);
-      if (!mounted) return;
+      // Only reset the form after the submission actually persisted.
       _resetForm();
-      context.go(AppRoutes.shipments);
+      context.go(AppRoutes.orderPlaced, extra: created);
     } on LimitException {
       if (!mounted) return;
       setState(() => _submitting = false);
+      // The limit dialog keeps every entered value — nothing is cleared.
       await _showLimitDialog();
     } on AppException catch (error) {
       if (!mounted) return;
@@ -633,26 +633,6 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
-  }
-
-  Future<void> _showSuccessDialog(String reference) {
-    return showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text(AppStrings.shipmentCreated),
-          content: Text(
-            '${AppStrings.shipmentCreatedSubtitle}\n\n$reference',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(AppStrings.gotIt),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Future<void> _showLimitDialog() {

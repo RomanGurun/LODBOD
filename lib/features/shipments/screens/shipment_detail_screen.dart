@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_sizes.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/extensions/date_ext.dart';
 import '../../../core/extensions/num_ext.dart';
+import '../../../core/router/app_router.dart';
 import '../../../domain/entities/shipment.dart';
 import '../../../domain/enums/cargo_category.dart';
 import '../../../domain/enums/shipment_status.dart';
@@ -13,6 +15,7 @@ import '../../../domain/enums/vehicle_type.dart';
 import '../../../shared/widgets/skeletons.dart';
 import '../../../shared/widgets/state_views.dart';
 import '../../../shared/widgets/status_badge.dart';
+import '../../../shared/widgets/status_timeline.dart';
 import '../../bids/widgets/bid_card.dart';
 import '../providers/shipment_notifier.dart';
 import '../providers/shipment_providers.dart';
@@ -21,6 +24,14 @@ class ShipmentDetailScreen extends ConsumerWidget {
   const ShipmentDetailScreen({super.key, required this.shipmentId});
 
   final String shipmentId;
+
+  /// Whether the shipment has progressed far enough to have something to
+  /// track: a carrier is engaged and the load is moving or scheduled.
+  bool _isTrackable(Shipment shipment) {
+    return shipment.status == ShipmentStatus.scheduled ||
+        shipment.status == ShipmentStatus.confirmed ||
+        shipment.status == ShipmentStatus.inTransit;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,6 +63,10 @@ class ShipmentDetailScreen extends ConsumerWidget {
               children: [
                 _HeaderCard(shipment: shipment),
                 const SizedBox(height: AppSizes.md),
+                if (_isTrackable(shipment)) ...<Widget>[
+                  _TrackButton(shipment: shipment),
+                  const SizedBox(height: AppSizes.md),
+                ],
                 _CargoCard(shipment: shipment),
                 const SizedBox(height: AppSizes.md),
                 _ScheduleCard(shipment: shipment),
@@ -67,6 +82,33 @@ class ShipmentDetailScreen extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Opens the (simulated) tracking screen for a shipment in motion.
+class _TrackButton extends StatelessWidget {
+  const _TrackButton({required this.shipment});
+
+  final Shipment shipment;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: () => context.go(AppRoutes.shipmentTracking(shipment.id)),
+        icon: const Icon(Icons.radar, size: 20),
+        label: const Text('Track Shipment'),
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.textOnPrimary,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          ),
+        ),
       ),
     );
   }
@@ -282,68 +324,10 @@ class _TimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final steps = _stepsFor(shipment);
-
     return _SectionCard(
       title: AppStrings.timeline,
-      child: Column(
-        children: [
-          for (final step in steps)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSizes.sm),
-              child: Row(
-                children: [
-                  Icon(
-                    step.$2 ? Icons.check_circle : Icons.radio_button_unchecked,
-                    size: AppSizes.iconSm,
-                    color: step.$2 ? AppColors.success : AppColors.textHint,
-                  ),
-                  const SizedBox(width: AppSizes.sm),
-                  Text(
-                    step.$1,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: step.$2
-                              ? AppColors.textPrimary
-                              : AppColors.textSecondary,
-                          fontWeight:
-                              step.$3 ? FontWeight.w700 : FontWeight.normal,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
+      child: StatusTimeline(shipment: shipment),
     );
-  }
-
-  List<(String, bool, bool)> _stepsFor(Shipment shipment) {
-    if (shipment.status == ShipmentStatus.cancelled ||
-        shipment.status == ShipmentStatus.expired) {
-      return [(shipment.status.label, true, true)];
-    }
-
-    final progress = switch (shipment.status) {
-      ShipmentStatus.open => 0,
-      ShipmentStatus.awaitingBids => 1,
-      ShipmentStatus.scheduled => 1,
-      ShipmentStatus.confirmed => 2,
-      ShipmentStatus.inTransit => 2,
-      ShipmentStatus.delivered => 3,
-      ShipmentStatus.cancelled || ShipmentStatus.expired => -1,
-    };
-
-    const labels = <String>[
-      'Posted',
-      'Bids received',
-      'Carrier confirmed',
-      'Delivered',
-    ];
-
-    return <(String, bool, bool)>[
-      for (var i = 0; i < labels.length; i++)
-        (labels[i], i <= progress, i == progress),
-    ];
   }
 }
 
