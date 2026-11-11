@@ -6,6 +6,7 @@ import 'package:lodbod/core/errors/app_exception.dart';
 import 'package:lodbod/shared/extensions/date_ext.dart';
 import 'package:lodbod/shared/extensions/string_ext.dart';
 import 'package:lodbod/core/theme/tokens.dart';
+import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
 import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
 import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
 
@@ -45,7 +46,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
             ),
             data: (profile) => _ProfileCard(
               name: profile?.name ?? user?.displayName ?? 'Shipper',
-              subtitle: profile?.email ?? user?.email ?? '—',
+              subtitle: _profileSubtitle(profile, user),
             ),
           ),
           const SizedBox(height: 30),
@@ -225,6 +226,17 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     );
   }
 
+  String _profileSubtitle(UserProfile? profile, AuthUser? user) {
+    final email = (profile?.email ?? '').trim();
+    if (email.isNotEmpty) return email;
+    final phone = (profile?.phone ?? '').trim();
+    if (phone.isNotEmpty) return phone;
+    final userEmail = (user?.email ?? '').trim();
+    if (userEmail.isNotEmpty) return userEmail;
+    final userPhone = (user?.phoneNumber ?? '').trim();
+    return userPhone.isNotEmpty ? userPhone : '—';
+  }
+
   void _showPersonalInfo(BuildContext context, UserProfile? profile) {
     final user = ref.read(authNotifierProvider).valueOrNull;
     final name = profile?.name.isNotEmpty == true
@@ -234,7 +246,10 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
         profile?.email.isNotEmpty == true ? profile!.email : user?.email ?? '—';
     final phone = (profile?.phone ?? '').trim().isNotEmpty
         ? profile!.phone
-        : 'Not provided';
+        : (user?.phoneNumber ?? '').trim().isNotEmpty
+            ? user!.phoneNumber
+            : 'Not provided';
+    final role = profile?.isCarrier == true ? 'Carrier' : 'Shipper';
 
     showModalBottomSheet<void>(
       context: context,
@@ -262,7 +277,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
               _ProfileInfoRow(label: 'Name', value: name),
               _ProfileInfoRow(label: 'Email', value: email),
               _ProfileInfoRow(label: 'Phone', value: phone),
-              const _ProfileInfoRow(label: 'Role', value: 'Shipper'),
+              _ProfileInfoRow(label: 'Role', value: role),
               _ProfileInfoRow(
                 label: 'Member since',
                 value: profile?.createdAt.formatDisplay() ?? '—',

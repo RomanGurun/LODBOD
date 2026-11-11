@@ -1,4 +1,5 @@
 import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/utils/phone_number.dart';
 
 class Validators {
   Validators._();
@@ -37,6 +38,24 @@ class Validators {
     if (value == null || value.trim().isEmpty) return AppStrings.fieldRequired;
     if (!RegExp(r'^[0-9]{10}$').hasMatch(value.trim())) {
       return AppStrings.invalidPhone;
+    }
+    return null;
+  }
+
+  /// Nepal mobile number for the phone-login tab: 10 digits starting with 9.
+  static String? nepalMobile(String? value) {
+    if (value == null || value.trim().isEmpty) return AppStrings.fieldRequired;
+    if (!PhoneNumber.isValidNepalMobile(value)) {
+      return AppStrings.invalidNepalPhone;
+    }
+    return null;
+  }
+
+  /// Six-digit SMS OTP.
+  static String? otpCode(String? value) {
+    if (value == null || value.trim().isEmpty) return AppStrings.fieldRequired;
+    if (!RegExp(r'^\d{6}$').hasMatch(value.trim())) {
+      return 'Enter the 6-digit code';
     }
     return null;
   }

@@ -5,24 +5,31 @@ import 'package:lodbod/features/shipments/data/mock/mock_shipment_repository.dar
 import 'package:lodbod/features/shipments/data/mock/seed_data.dart';
 import 'package:lodbod/features/shipments/data/models/shipment_model.dart';
 import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
+import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
+import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:lodbod/features/shipments/domain/enums/bid_status.dart';
 import 'package:lodbod/features/shipments/domain/enums/shipment_status.dart';
 import 'package:lodbod/features/shipments/presentation/providers/shipment_notifier.dart';
 import 'package:lodbod/core/di/repository_providers.dart';
 
 import '../../../support/fake_auth.dart';
+import '../../../support/fake_profile_repository.dart';
 import '../../../support/fixtures.dart';
 
 void main() {
   ProviderContainer containerWith(
     MockShipmentRepository repository, {
     AuthUser? user,
+    FakeUserProfileRepository? profiles,
   }) {
     final container = ProviderContainer(
       overrides: <Override>[
         shipmentRepositoryProvider.overrideWithValue(repository),
         authRepositoryProvider.overrideWithValue(
           FakeAuthRepository(user: user),
+        ),
+        userProfileRepositoryProvider.overrideWithValue(
+          profiles ?? FakeUserProfileRepository(),
         ),
       ],
     );
@@ -129,6 +136,48 @@ void main() {
     expect(created.status, ShipmentStatus.open);
     expect(created.shipperId, 'demo-1');
     expect(created.shipperName, 'Aarav Shrestha');
+  });
+
+  test('a phone user stamps the Firebase UID and the MockAPI profile name',
+      () async {
+    final now = DateTime.utc(2026, 1, 1);
+    final profiles = FakeUserProfileRepository(
+      profiles: <String, UserProfile>{
+        'phone-uid': UserProfile(
+          uid: 'phone-uid',
+          name: 'Sushil Thapa',
+          email: '',
+          phone: '+9779812345678',
+          isPhoneVerified: true,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      },
+    );
+    final repository = MockShipmentRepository(
+      shipments: const <ShipmentModel>[],
+      bids: const [],
+      latency: Duration.zero,
+    );
+    final container = containerWith(
+      repository,
+      user: const AuthUser(
+        id: 'phone-uid',
+        email: '',
+        displayName: '',
+        phoneNumber: '+9779812345678',
+      ),
+      profiles: profiles,
+    );
+    await container.read(shipmentNotifierProvider.future);
+    await container.read(userProfileProvider.future);
+
+    final created = await container
+        .read(shipmentNotifierProvider.notifier)
+        .createShipment(validDraft());
+
+    expect(created.shipperId, 'phone-uid');
+    expect(created.shipperName, 'Sushil Thapa');
   });
 
   test('createShipment enforces the three-active limit', () async {

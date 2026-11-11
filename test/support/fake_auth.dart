@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:lodbod/core/errors/app_exception.dart';
 import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
+import 'package:lodbod/features/auth/domain/entities/phone_verification.dart';
 import 'package:lodbod/features/auth/domain/repositories/i_auth_repository.dart';
 
 /// Test double for [IAuthRepository] that starts signed in as [user].
@@ -20,9 +21,28 @@ class FakeAuthRepository implements IAuthRepository {
     displayName: 'Aarav Shrestha',
   );
 
+  /// Code accepted by [verifyPhoneOtp]. Test-only value; production code must
+  /// never contain a hardcoded OTP.
+  static const String validTestCode = '123456';
+
   AuthUser? _user;
   final StreamController<AuthUser?> _controller =
       StreamController<AuthUser?>.broadcast();
+
+  String? _verificationId;
+  String? lastPhoneNumber;
+  int? lastResendToken;
+  int resendCount = 0;
+
+  /// Credentials attached after phone verification in the registration flow.
+  String? linkedPassword;
+  String? linkedPhoneNumber;
+  String? linkedEmail;
+  String? linkedDisplayName;
+
+  /// When true the next [requestPhoneVerification] behaves like Android
+  /// auto-retrieval and signs the user in immediately.
+  bool autoVerifyNext = false;
 
   @override
   AuthUser? get currentUser => _user;
@@ -59,8 +79,81 @@ class FakeAuthRepository implements IAuthRepository {
   Future<void> sendPasswordResetEmail(String email) async {}
 
   @override
+  Future<PhoneVerification> requestPhoneVerification({
+    required String phoneNumber,
+    int? resendToken,
+    String? linkPassword,
+    String? linkEmail,
+    String? linkDisplayName,
+  }) async {
+    lastPhoneNumber = phoneNumber;
+    if (resendToken != null) {
+      resendCount += 1;
+      lastResendToken = resendToken;
+    }
+
+    if (autoVerifyNext) {
+      autoVerifyNext = false;
+      linkedPassword = linkPassword;
+      linkedEmail = linkEmail;
+      linkedDisplayName = linkDisplayName;
+      linkedPhoneNumber = linkPassword == null ? null : phoneNumber;
+      final user = AuthUser(
+        id: 'phone-uid',
+        email: linkEmail ?? '',
+        displayName: linkDisplayName ?? '',
+        phoneNumber: phoneNumber,
+      );
+      _setUser(user);
+      return PhoneVerification(autoVerifiedUser: user);
+    }
+
+    _verificationId = 'test-verification-$phoneNumber';
+    return PhoneVerification(
+      verificationId: _verificationId,
+      resendToken: 42,
+    );
+  }
+
+  @override
+  Future<AuthUser> verifyPhoneOtp({
+    required String verificationId,
+    required String smsCode,
+    String? linkPassword,
+    String? linkEmail,
+    String? linkDisplayName,
+  }) async {
+    if (_verificationId == null || verificationId != _verificationId) {
+      throw const AuthException(
+        'This verification has expired. Request a new code.',
+      );
+    }
+    if (smsCode != validTestCode) {
+      throw const AuthException(
+          'That code is incorrect. Check it and try again.');
+    }
+    linkedPassword = linkPassword;
+    linkedEmail = linkEmail;
+    linkedDisplayName = linkDisplayName;
+    linkedPhoneNumber = linkPassword == null ? null : lastPhoneNumber;
+    final user = AuthUser(
+      id: 'phone-uid',
+      email: linkEmail ?? '',
+      displayName: linkDisplayName ?? '',
+      phoneNumber: lastPhoneNumber ?? '',
+    );
+    _setUser(user);
+    return user;
+  }
+
+  @override
   Future<void> signOut() async {
     _user = null;
     _controller.add(null);
+  }
+
+  void _setUser(AuthUser? user) {
+    _user = user;
+    _controller.add(user);
   }
 }

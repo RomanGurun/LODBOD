@@ -3,9 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lodbod/core/errors/app_exception.dart';
 import 'package:lodbod/features/auth/data/mock/mock_auth_repository.dart';
 import 'package:lodbod/features/auth/data/mock/mock_user_profile_repository.dart';
+import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
+import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
 import 'package:lodbod/features/auth/domain/repositories/i_user_profile_repository.dart';
 import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:lodbod/core/di/repository_providers.dart';
+
+import '../../../support/fake_auth.dart';
+import '../../../support/fake_profile_repository.dart';
 
 void main() {
   ProviderContainer containerWith(
@@ -147,5 +152,46 @@ void main() {
     await container.read(authNotifierProvider.notifier).signOut();
 
     expect(container.read(authNotifierProvider).valueOrNull, isNull);
+  });
+
+  test('restores a persisted session and existing profile without duplicating',
+      () async {
+    const user = AuthUser(
+      id: 'persisted-uid',
+      email: '',
+      displayName: '',
+      phoneNumber: '+9779841000000',
+    );
+    final existing = UserProfile(
+      uid: user.id,
+      name: 'Sita Gurung',
+      email: '',
+      phone: user.phoneNumber,
+      role: UserProfile.roleCarrier,
+      isPhoneVerified: true,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 2),
+    );
+    final profiles = FakeUserProfileRepository(
+      profiles: <String, UserProfile>{user.id: existing},
+    );
+    final container = ProviderContainer(
+      overrides: <Override>[
+        authRepositoryProvider
+            .overrideWithValue(FakeAuthRepository(user: user)),
+        userProfileRepositoryProvider.overrideWithValue(profiles),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    // No signIn call: the repository already holds the session that Firebase
+    // restores on app start.
+    final restored = await container.read(authNotifierProvider.future);
+    final profile = await container.read(userProfileProvider.future);
+
+    expect(restored?.id, user.id);
+    expect(profile, existing);
+    expect(profiles.ensureCalls, 1);
+    expect(profiles.saveCalls, 0);
   });
 }

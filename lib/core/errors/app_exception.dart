@@ -16,6 +16,15 @@ class AuthException extends AppException {
       [super.message = 'Authentication failed. Please sign in again.']);
 }
 
+/// Firebase Auth could not be reached at all (network down, API key rejected,
+/// provider disabled). The email login flow uses this to fall back to the
+/// local demo account; phone OTP failures are surfaced to the user instead.
+class AuthServiceUnavailableException extends AuthException {
+  const AuthServiceUnavailableException([
+    super.message = 'Authentication service is unavailable. Please try again.',
+  ]);
+}
+
 class LimitException extends AppException {
   const LimitException([
     super.message = 'You have reached the mobile request limit of 3. '

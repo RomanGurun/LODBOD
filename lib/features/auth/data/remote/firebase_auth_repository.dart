@@ -1,30 +1,41 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart' as firebase;
-
 import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/features/auth/data/datasources/firebase_auth_data_source.dart';
 import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
+import 'package:lodbod/features/auth/domain/entities/phone_verification.dart';
 import 'package:lodbod/features/auth/domain/repositories/i_auth_repository.dart';
 
+/// [IAuthRepository] backed by Firebase Auth.
+///
+/// Email authentication keeps the local demo fallback so the documented
+/// showcase still works when Firebase is unreachable. Phone OTP never falls
+/// back: a code must be verified by Firebase, and failures are reported to the
+/// user instead of being faked.
 class FirebaseAuthRepository implements IAuthRepository {
   FirebaseAuthRepository({
-    required firebase.FirebaseAuth firebaseAuth,
+    required FirebaseAuthDataSource dataSource,
     required IAuthRepository fallback,
-  })  : _firebaseAuth = firebaseAuth,
+  })  : _dataSource = dataSource,
         _fallback = fallback {
-    final user = _firebaseAuth.currentUser;
-    if (user != null) {
-      _currentUser = _mapUser(user);
-    }
+    _currentUser = dataSource.currentUser;
+    _subscription = dataSource.authStateChanges().listen(_onExternalChange);
   }
 
-  final firebase.FirebaseAuth _firebaseAuth;
+  final FirebaseAuthDataSource _dataSource;
   final IAuthRepository _fallback;
   final StreamController<AuthUser?> _controller =
       StreamController<AuthUser?>.broadcast();
 
+  StreamSubscription<AuthUser?>? _subscription;
   AuthUser? _currentUser;
+
+  /// True while a phone verification is running. Firebase signs the phone user
+  /// in before the optional email/password link completes; suppressing those
+  /// intermediate events keeps the router from resolving a half-built account
+  /// (for example, a profile without the email address).
+  bool _phoneFlowActive = false;
 
   @override
   AuthUser? get currentUser => _currentUser;
@@ -35,14 +46,23 @@ class FirebaseAuthRepository implements IAuthRepository {
     yield* _controller.stream;
   }
 
+  /// Forwards genuine Firebase-side changes (session restored, token revoked,
+  /// signed out elsewhere). Echoes of our own writes are ignored.
+  void _onExternalChange(AuthUser? user) {
+    if (_phoneFlowActive) return;
+    if (user == _currentUser) return;
+    _currentUser = user;
+    _controller.add(user);
+  }
+
   @override
   Future<AuthUser> signIn({
     required String email,
     required String password,
   }) async {
-    // The demo account owns the seeded sample shipments and is
-    // authenticated locally by design, so the documented demo journey
-    // works even when Firebase is unreachable.
+    // The demo account owns the seeded sample shipments and is authenticated
+    // locally by design, so the documented demo journey works even when
+    // Firebase is unreachable.
     final normalized = email.trim().toLowerCase();
     if (normalized == AppStrings.demoEmail &&
         password == AppStrings.demoPassword) {
@@ -50,33 +70,22 @@ class FirebaseAuthRepository implements IAuthRepository {
     }
 
     try {
-      final credential = await _firebaseAuth.signInWithEmailAndPassword(
-        email: normalized,
+      final user = await _dataSource.signInWithEmail(
+        email: email,
         password: password,
       );
-      final user = credential.user;
-      if (user == null) {
-        throw const AuthException(AppStrings.invalidCredentials);
-      }
-      final mapped = _mapUser(user);
-      _emit(mapped);
-      return mapped;
-    } on firebase.FirebaseAuthException catch (error) {
-      // Client-side failures (wrong password, unknown user, …) must not
-      // silently fall back to the local account store.
-      if (_isUnavailable(error)) {
-        return _fallbackSignIn(
-          email: email,
-          password: password,
-          unavailableMessage:
-              'Authentication service is unavailable. Please try again.',
-        );
-      }
-      throw AuthException(_messageFor(error));
+      _emit(user);
+      return user;
+    } on AuthServiceUnavailableException {
+      return _fallbackSignIn(
+        email: email,
+        password: password,
+        unavailableMessage:
+            'Authentication service is unavailable. Please try again.',
+      );
     } on AuthException {
       rethrow;
     } on Exception {
-      // Firebase itself could not be reached/initialized at all.
       return _fallbackSignIn(
         email: email,
         password: password,
@@ -93,29 +102,19 @@ class FirebaseAuthRepository implements IAuthRepository {
     required String displayName,
   }) async {
     try {
-      final credential = await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email.trim(),
+      final user = await _dataSource.signUpWithEmail(
+        email: email,
         password: password,
+        displayName: displayName,
       );
-      final user = credential.user;
-      if (user == null) {
-        throw const AuthException(AppStrings.invalidCredentials);
-      }
-      if (displayName.trim().isNotEmpty) {
-        await user.updateDisplayName(displayName.trim());
-      }
-      final mapped = _mapUser(user);
-      _emit(mapped);
-      return mapped;
-    } on firebase.FirebaseAuthException catch (error) {
-      if (_isUnavailable(error)) {
-        return _fallbackSignUp(
-          email: email,
-          password: password,
-          displayName: displayName,
-        );
-      }
-      throw AuthException(_messageFor(error));
+      _emit(user);
+      return user;
+    } on AuthServiceUnavailableException {
+      return _fallbackSignUp(
+        email: email,
+        password: password,
+        displayName: displayName,
+      );
     } on AuthException {
       rethrow;
     } on Exception {
@@ -128,22 +127,103 @@ class FirebaseAuthRepository implements IAuthRepository {
   }
 
   @override
-  Future<void> sendPasswordResetEmail(String email) async {
+  Future<void> sendPasswordResetEmail(String email) {
+    return _dataSource.sendPasswordResetEmail(email);
+  }
+
+  @override
+  Future<PhoneVerification> requestPhoneVerification({
+    required String phoneNumber,
+    int? resendToken,
+  }) async {
+    _phoneFlowActive = true;
     try {
-      await _firebaseAuth.sendPasswordResetEmail(email: email.trim());
-    } on firebase.FirebaseAuthException catch (error) {
-      throw AuthException(_messageFor(error));
-    } on Exception {
-      throw const AuthException(
-        'Password reset is unavailable right now. Please try again later.',
+      final result = await _dataSource.requestPhoneVerification(
+        phoneNumber: phoneNumber,
+        resendToken: resendToken,
       );
+      // Android auto-verification completes inside the request; publish the
+      // final user now.
+      final autoUser = result.autoVerifiedUser;
+      if (autoUser != null) _emit(autoUser);
+      return result;
+    } finally {
+      _phoneFlowActive = false;
     }
   }
 
   @override
+  Future<AuthUser> verifyPhoneOtp({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    _phoneFlowActive = true;
+    try {
+      final user = await _dataSource.verifyPhoneOtp(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      _emit(user);
+      return user;
+    } finally {
+      _phoneFlowActive = false;
+    }
+  }
+
+  @override
+  Future<PhoneVerification> requestPhoneLink({
+    required String phoneNumber,
+    required String email,
+    required String password,
+    int? resendToken,
+  }) async {
+    _phoneFlowActive = true;
+    try {
+      final result = await _dataSource.requestPhoneLink(
+        phoneNumber: phoneNumber,
+        email: email,
+        password: password,
+        resendToken: resendToken,
+      );
+      final autoUser = result.autoVerifiedUser;
+      if (autoUser != null) _emit(autoUser);
+      return result;
+    } finally {
+      _phoneFlowActive = false;
+    }
+  }
+
+  @override
+  Future<AuthUser> verifyPhoneLink({
+    required String phoneNumber,
+    required String verificationId,
+    required String smsCode,
+    required String email,
+    required String password,
+  }) async {
+    _phoneFlowActive = true;
+    try {
+      final user = await _dataSource.verifyPhoneLink(
+        phoneNumber: phoneNumber,
+        verificationId: verificationId,
+        smsCode: smsCode,
+        email: email,
+        password: password,
+      );
+      _emit(user);
+      return user;
+    } finally {
+      _phoneFlowActive = false;
+    }
+  }
+
+  @override
+  Future<void> cancelPhoneLink() => _dataSource.cancelPhoneLink();
+
+  @override
   Future<void> signOut() async {
     try {
-      await _firebaseAuth.signOut();
+      await _dataSource.signOut();
     } catch (_) {
       // The local fallback still needs to be cleared.
     }
@@ -184,50 +264,13 @@ class FirebaseAuthRepository implements IAuthRepository {
   }
 
   void _emit(AuthUser? user) {
+    final changed = _currentUser != user;
     _currentUser = user;
-    _controller.add(user);
+    if (changed) _controller.add(user);
   }
 
-  AuthUser _mapUser(firebase.User user) {
-    final email = user.email ?? '';
-    final displayName = user.displayName?.trim();
-    return AuthUser(
-      id: user.uid,
-      email: email,
-      displayName: displayName == null || displayName.isEmpty
-          ? (email.isEmpty ? 'Shipper' : email.split('@').first)
-          : displayName,
-    );
+  void dispose() {
+    _subscription?.cancel();
+    _controller.close();
   }
-
-  bool _isUnavailable(firebase.FirebaseAuthException error) {
-    return error.code == 'network-request-failed' ||
-        error.code == 'too-many-requests' ||
-        error.code == 'operation-not-allowed' ||
-        error.code == 'invalid-api-key' ||
-        error.code == 'app-not-authorized' ||
-        error.code == 'internal-error' ||
-        error.code == 'unknown';
-  }
-
-  String _messageFor(firebase.FirebaseAuthException error) {
-    if (_isUnavailable(error)) {
-      return 'Authentication service is unavailable. Try again.';
-    }
-    switch (error.code) {
-      case 'email-already-in-use':
-        return 'An account with this email already exists.';
-      case 'weak-password':
-        return 'Password is too weak. Use at least 6 characters.';
-      case 'invalid-email':
-        return 'Please enter a valid email address.';
-      case 'user-not-found':
-      case 'wrong-password':
-      case 'invalid-credential':
-      default:
-        return AppStrings.invalidCredentials;
-    }
-  }
-
-  void dispose() => _controller.close();
 }

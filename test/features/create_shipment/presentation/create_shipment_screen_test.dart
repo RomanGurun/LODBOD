@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/features/auth/data/mock/mock_user_profile_repository.dart';
 import 'package:lodbod/features/shipments/data/mock/mock_shipment_repository.dart';
 import 'package:lodbod/features/shipments/data/mock/seed_data.dart';
 import 'package:lodbod/features/shipments/data/models/shipment_model.dart';
@@ -61,6 +62,9 @@ void main() {
             repository ?? MockShipmentRepository(latency: Duration.zero),
           ),
           authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+          userProfileRepositoryProvider.overrideWithValue(
+            MockUserProfileRepository(),
+          ),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),
@@ -166,6 +170,85 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(find.text('Order placed'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  Future<void> goToCargoStep(WidgetTester tester) async {
+    await pumpForm(tester);
+    await tester.enterText(fieldWithHint('Kathmandu'), 'Kathmandu');
+    await tester.enterText(
+      fieldWithHint('Kalimati, Kathmandu'),
+      'Kalimati, Kathmandu',
+    );
+    await tester.enterText(fieldWithHint('Pokhara'), 'Pokhara');
+    await tester.enterText(
+      fieldWithHint('Lakeside, Pokhara'),
+      'Lakeside, Pokhara',
+    );
+    await tapNext(tester);
+  }
+
+  double fieldHeight(WidgetTester tester, String label) {
+    final finder = find.byWidgetPredicate(
+      (widget) =>
+          widget is InputDecorator && widget.decoration.labelText == label,
+    );
+    expect(finder, findsOneWidget);
+    return tester.getSize(finder).height;
+  }
+
+  testWidgets('keeps every single-line field the same height', (tester) async {
+    await goToCargoStep(tester);
+
+    // The text field and both select fields must share one height — the
+    // select used to be ~30px taller because of its DropdownButton child.
+    final weightHeight = fieldHeight(tester, AppStrings.weight);
+    expect(
+      fieldHeight(tester, AppStrings.cargoCategory),
+      closeTo(weightHeight, 0.01),
+    );
+    expect(
+      fieldHeight(tester, AppStrings.weightUnit),
+      closeTo(weightHeight, 0.01),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('keeps the date and time pickers aligned', (tester) async {
+    await goToCargoStep(tester);
+    await tester.enterText(
+      fieldWithHint('Steel pipes, cement bags, furniture...'),
+      'Steel pipes',
+    );
+    await tester.enterText(fieldWithHint('10'), '10');
+    await tapNext(tester);
+
+    expect(
+      fieldHeight(tester, AppStrings.pickupTime),
+      closeTo(fieldHeight(tester, AppStrings.pickupDate), 0.01),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  Finder fieldWithLabel(String label) {
+    return find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.decoration?.labelText == label,
+    );
+  }
+
+  testWidgets('picks a cargo category from the select sheet', (tester) async {
+    await goToCargoStep(tester);
+
+    await tester.tap(fieldWithLabel(AppStrings.cargoCategory));
+    await tester.pumpAndSettle();
+    expect(find.text('Electronics'), findsOneWidget);
+
+    await tester.tap(find.text('Electronics'));
+    await tester.pumpAndSettle();
+
+    // The field now shows the new value and the sheet is gone.
+    expect(find.text('Electronics'), findsOneWidget);
+    expect(find.text('Construction'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

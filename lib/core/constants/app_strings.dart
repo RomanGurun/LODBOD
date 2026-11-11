@@ -17,11 +17,42 @@ class AppStrings {
   static const String demoEmail = 'demo@lodbod.com';
   static const String demoPhone = '9800000000';
   static const String demoPassword = 'Demo@1234';
-  static const String otpTitle = 'Verify OTP';
-  static const String otpSubtitle =
-      'Enter the 6-digit code sent to your number';
-  static const String otpResend = 'Resend OTP';
-  static const String otpVerify = 'Verify';
+
+  // Phone OTP authentication
+  static const String authTitle = 'Welcome to LODBOD';
+  static const String authSubtitle =
+      'Sign in to manage and track your shipments.';
+  static const String phoneTab = 'Phone';
+  static const String emailTab = 'Email';
+  static const String phoneNumber = 'Phone number';
+  static const String phoneHint = '98XXXXXXXX';
+  static const String sendOtp = 'Send OTP';
+  static const String signInSendOtp = 'Sign In & Send OTP';
+  static const String confirmPassword = 'Confirm password';
+  static const String confirmPasswordHint = 'Re-enter your password';
+  static const String alreadyHaveAccount = 'Already have an account? Sign in';
+  static const String otpTitle = 'Verify your number';
+  static const String otpSubtitle = 'Enter the 6-digit code we sent to';
+  static const String otpCodeLabel = '6-digit code';
+  static const String verifyOtp = 'Verify & continue';
+  static const String resendOtp = 'Resend code';
+  static const String resendIn = 'Resend in {seconds}s';
+  static const String changePhoneNumber = 'Change phone number';
+  static const String codeExpired = 'This code has expired. Request a new one.';
+  static const String profileSetupTitle = 'Complete your profile';
+  static const String profileSetupSubtitle =
+      'Tell us your name and how you use LODBOD.';
+  static const String fullName = 'Full name';
+  static const String fullNameHint = 'e.g. Aarav Shrestha';
+  static const String verifiedPhone = 'Verified phone';
+  static const String roleLabel = 'I am a';
+  static const String roleShipper = 'Shipper';
+  static const String roleCarrier = 'Carrier';
+  static const String roleShipperHint = 'I post loads and hire carriers';
+  static const String roleCarrierHint = 'I bid for loads and move cargo';
+  static const String continueLabel = 'Continue';
+  static const String profileSetupFailed =
+      'We could not load your profile. Check your connection and try again.';
 
   // Dashboard
   static const String dashboard = 'Dashboard';
@@ -155,6 +186,8 @@ class AppStrings {
   static const String fieldRequired = 'This field is required';
   static const String invalidEmail = 'Enter a valid email address';
   static const String invalidPhone = 'Enter a valid 10-digit phone number';
+  static const String invalidNepalPhone =
+      'Enter a valid 10-digit Nepal mobile number';
   static const String sameLocationError =
       'Pickup and destination cannot be the same';
   static const String pastDateError = 'Pickup date cannot be in the past';

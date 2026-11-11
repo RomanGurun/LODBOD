@@ -185,7 +185,10 @@ class ShipmentNotifier extends AsyncNotifier<List<Shipment>> {
   }
 
   String _shipperName(AuthUser user) {
-    final name = user.displayName.trim();
+    final profileName = ref.read(userProfileProvider).valueOrNull?.name ?? '';
+    final name = profileName.trim().isNotEmpty
+        ? profileName.trim()
+        : user.displayName.trim();
     return name.isEmpty ? 'Demo Shipper' : name;
   }
 }

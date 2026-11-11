@@ -1,14 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:lodbod/core/theme/tokens.dart';
 import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
+import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
 import 'package:lodbod/features/shipments/domain/entities/shipment.dart';
 import 'package:lodbod/features/account/presentation/screens/account_screen.dart';
 import 'package:lodbod/features/analytics/presentation/screens/analytics_screen.dart';
 import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:lodbod/features/auth/presentation/screens/login_screen.dart';
-import 'package:lodbod/features/auth/presentation/screens/otp_screen.dart';
+import 'package:lodbod/features/auth/presentation/screens/otp_verification_screen.dart';
+import 'package:lodbod/features/auth/presentation/screens/profile_completion_screen.dart';
 import 'package:lodbod/features/auth/presentation/screens/registration_screen.dart';
 import 'package:lodbod/features/auth/presentation/screens/splash_screen.dart';
 import 'package:lodbod/features/create_shipment/presentation/screens/create_shipment_screen.dart';
@@ -26,6 +31,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String otp = '/otp';
+  static const String completeProfile = '/complete-profile';
   static const String home = '/home';
   static const String shipments = '/shipments';
   static const String postLoad = '/post-load';
@@ -46,14 +52,29 @@ class AppRoutes {
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh =
       ValueNotifier<AsyncValue<AuthUser?>>(const AsyncLoading<AuthUser?>());
+  final profileRefresh = ValueNotifier<AsyncValue<UserProfile?>>(
+      const AsyncLoading<UserProfile?>());
+
+  // Keeps the branded splash on screen for a moment on cold start instead of
+  // flashing for a single frame. It only gates the initial session check —
+  // sign-in/sign-up actions keep their own screen (and inline spinner).
+  final splashGate = ValueNotifier<bool>(true);
+  final splashTimer = Timer(AppDurations.splash, () {
+    splashGate.value = false;
+  });
 
   ref.listen<AsyncValue<AuthUser?>>(authNotifierProvider, (previous, next) {
     refresh.value = next;
   });
 
+  ref.listen<AsyncValue<UserProfile?>>(userProfileProvider, (previous, next) {
+    profileRefresh.value = next;
+  });
+
   final router = GoRouter(
     initialLocation: AppRoutes.splash,
-    refreshListenable: refresh,
+    refreshListenable:
+        Listenable.merge(<Listenable>[refresh, profileRefresh, splashGate]),
     redirect: (context, state) {
       final auth = ref.read(authNotifierProvider);
       final location = state.matchedLocation;
@@ -61,17 +82,43 @@ final routerProvider = Provider<GoRouter>((ref) {
       final onLogin = location == AppRoutes.login;
       final onRegister = location == AppRoutes.register;
       final onOtp = location == AppRoutes.otp;
+      final onCompleteProfile = location == AppRoutes.completeProfile;
       final onAuthFlow = onSplash || onLogin || onRegister || onOtp;
 
-      if (auth.isLoading) {
+      if (splashGate.value) {
         return onSplash ? null : AppRoutes.splash;
+      }
+
+      if (auth.isLoading) {
+        // Initial session restore on the splash, or an auth action on
+        // login/register/otp: stay put so the in-screen spinner is visible
+        // instead of bouncing through the splash screen.
+        return null;
       }
 
       final user = auth.valueOrNull;
       if (user == null) {
-        // Allow access to registration & OTP even when logged out.
+        // Allow the registration and OTP screens while logged out.
         if (onLogin || onRegister || onOtp) return null;
         return AppRoutes.login;
+      }
+
+      final profile = ref.read(userProfileProvider);
+      if (profile.isLoading) {
+        // Phone sign-in has succeeded; the profile is still being resolved.
+        // Keep the current screen's spinner visible (the OTP screen shows one).
+        return null;
+      }
+
+      if (profile.hasError) {
+        // The Firebase session is valid but the MockAPI profile could not be
+        // read or created. The completion screen exposes a retry.
+        return onCompleteProfile ? null : AppRoutes.completeProfile;
+      }
+
+      final profileComplete = profile.valueOrNull?.isComplete ?? false;
+      if (!profileComplete) {
+        return onCompleteProfile ? null : AppRoutes.completeProfile;
       }
 
       // The confirmation page only makes sense straight after submission.
@@ -79,7 +126,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return AppRoutes.shipments;
       }
 
-      if (onAuthFlow) return AppRoutes.home;
+      if (onAuthFlow || onCompleteProfile) return AppRoutes.home;
       return null;
     },
     routes: <RouteBase>[
@@ -101,7 +148,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.otp,
         name: 'otp',
-        builder: (context, state) => const OtpScreen(),
+        builder: (context, state) => const OtpVerificationScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.completeProfile,
+        name: 'completeProfile',
+        builder: (context, state) => const ProfileCompletionScreen(),
       ),
       GoRoute(
         path: AppRoutes.orderPlaced,
@@ -192,8 +244,11 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 
   ref.onDispose(() {
-    refresh.dispose();
+    splashTimer.cancel();
     router.dispose();
+    refresh.dispose();
+    profileRefresh.dispose();
+    splashGate.dispose();
   });
 
   return router;

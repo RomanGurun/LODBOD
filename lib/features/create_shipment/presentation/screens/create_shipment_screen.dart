@@ -7,6 +7,7 @@ import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/core/errors/app_exception.dart';
 import 'package:lodbod/shared/extensions/date_ext.dart';
 import 'package:lodbod/shared/extensions/num_ext.dart';
+import 'package:lodbod/shared/widgets/app_text_field.dart';
 import 'package:lodbod/core/routing/app_router.dart';
 import 'package:lodbod/features/shipments/domain/entities/create_shipment_draft.dart';
 import 'package:lodbod/features/shipments/domain/enums/cargo_category.dart';
@@ -229,26 +230,14 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: AppSizes.md),
-            InputDecorator(
-              decoration: const InputDecoration(
-                labelText: AppStrings.cargoCategory,
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<CargoCategory>(
-                  isExpanded: true,
-                  value: _category,
-                  items: <DropdownMenuItem<CargoCategory>>[
-                    for (final category in CargoCategory.values)
-                      DropdownMenuItem<CargoCategory>(
-                        value: category,
-                        child: Text(category.label),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) setState(() => _category = value);
-                  },
-                ),
-              ),
+            _SelectField<CargoCategory>(
+              label: AppStrings.cargoCategory,
+              value: _category,
+              items: <(CargoCategory, String)>[
+                for (final category in CargoCategory.values)
+                  (category, category.label),
+              ],
+              onSelected: (value) => setState(() => _category = value),
             ),
             const SizedBox(height: AppSizes.md),
             Row(
@@ -269,28 +258,13 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
                 const SizedBox(width: AppSizes.sm),
                 SizedBox(
                   width: 120,
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: AppStrings.weightUnit,
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        value: _weightUnit,
-                        items: <DropdownMenuItem<String>>[
-                          for (final unit in _weightUnits)
-                            DropdownMenuItem<String>(
-                              value: unit,
-                              child: Text(unit),
-                            ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _weightUnit = value);
-                          }
-                        },
-                      ),
-                    ),
+                  child: _SelectField<String>(
+                    label: AppStrings.weightUnit,
+                    value: _weightUnit,
+                    items: <(String, String)>[
+                      for (final unit in _weightUnits) (unit, unit),
+                    ],
+                    onSelected: (value) => setState(() => _weightUnit = value),
                   ),
                 ),
               ],
@@ -455,13 +429,20 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
     TextInputAction? textInputAction,
     String? Function(String?)? validator,
   }) {
-    return TextFormField(
+    // Every single-line field goes through the same shared widget so text
+    // fields, pickers and selects all render at the identical 50px height.
+    return AppTextField(
       controller: controller,
+      label: label,
+      hint: hint,
       maxLines: maxLines,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
+      // Multiline fields are taller by design; keep their label and cursor
+      // anchored to the top instead of floating in the middle.
+      textAlignVertical: maxLines > 1 ? TextAlignVertical.top : null,
+      alignLabelWithHint: maxLines > 1,
       validator: validator ?? _requiredValidator,
-      decoration: InputDecoration(labelText: label, hintText: hint),
     );
   }
 
@@ -755,6 +736,103 @@ class _StepScroll extends StatelessWidget {
   }
 }
 
+class _SelectField<T> extends StatelessWidget {
+  const _SelectField({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onSelected,
+  });
+
+  final String label;
+  final T value;
+  final List<(T, String)> items;
+  final ValueChanged<T> onSelected;
+  String get _valueLabel {
+    for (final item in items) {
+      if (item.$1 == value) return item.$2;
+    }
+    return items.first.$2;
+  }
+
+  Future<void> _open(BuildContext context) async {
+    final selected = await showModalBottomSheet<T>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final textTheme = Theme.of(sheetContext).textTheme;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSizes.screenHorizontal,
+                  0,
+                  AppSizes.screenHorizontal,
+                  AppSizes.sm,
+                ),
+                child: Text(
+                  label,
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(bottom: AppSizes.sm),
+                  children: <Widget>[
+                    for (final item in items)
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSizes.screenHorizontal,
+                        ),
+                        title: Text(item.$2),
+                        trailing: item.$1 == value
+                            ? const Icon(
+                                Icons.check_rounded,
+                                color: AppColors.primary,
+                              )
+                            : null,
+                        onTap: () => Navigator.of(sheetContext).pop(item.$1),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected != null && selected != value) onSelected(selected);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Rendered through the same AppTextField as every text input so the
+    // select is pixel-identical in height and typography. A DropdownButton
+    // inside an InputDecorator adds its own 48px min height and made the form
+    // jump by ~30px — that was the "up and down" misalignment.
+    return ExcludeFocus(
+      child: AppTextField(
+        key: ValueKey<T>(value),
+        initialValue: _valueLabel,
+        label: label,
+        readOnly: true,
+        textInputAction: TextInputAction.none,
+        suffixIcon: const Icon(
+          Icons.keyboard_arrow_down_rounded,
+          size: AppSizes.iconMd,
+        ),
+        onTap: () => _open(context),
+      ),
+    );
+  }
+}
+
 class _PickerField extends StatelessWidget {
   const _PickerField({
     required this.label,
@@ -770,15 +848,17 @@ class _PickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, size: AppSizes.iconSm),
-        ),
-        child: Text(value),
+    // Same AppTextField shell as the text inputs so date/time fields line up
+    // exactly with the text fields around them.
+    return ExcludeFocus(
+      child: AppTextField(
+        key: ValueKey<String>(value),
+        initialValue: value,
+        label: label,
+        readOnly: true,
+        textInputAction: TextInputAction.none,
+        suffixIcon: Icon(icon, size: AppSizes.iconMd),
+        onTap: onTap,
       ),
     );
   }

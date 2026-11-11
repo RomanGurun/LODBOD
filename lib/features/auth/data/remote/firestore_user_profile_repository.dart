@@ -25,6 +25,44 @@ class FirestoreUserProfileRepository implements IUserProfileRepository {
   }
 
   @override
+  Future<UserProfile?> findByPhone(String phoneNumber) async {
+    final trimmed = phoneNumber.trim();
+    if (trimmed.isEmpty) return null;
+    for (final field in const <String>['phone', 'phoneNumber']) {
+      final query =
+          await _users.where(field, isEqualTo: trimmed).limit(1).get();
+      if (query.docs.isNotEmpty) {
+        return UserProfile.fromFirestore(query.docs.first.data());
+      }
+    }
+    return null;
+  }
+
+  @override
+  Future<UserProfile> ensureProfile({
+    required String uid,
+    required String phoneNumber,
+    String fullName = '',
+    String email = '',
+  }) async {
+    final existing = await getProfile(uid);
+    if (existing != null) return existing;
+
+    final now = DateTime.now();
+    final profile = UserProfile(
+      uid: uid,
+      name: fullName.trim(),
+      email: email.trim(),
+      phone: phoneNumber.trim(),
+      isPhoneVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await saveProfile(profile);
+    return profile;
+  }
+
+  @override
   Future<void> saveProfile(UserProfile profile) async {
     await _users.doc(profile.uid).set(
           profile.toFirestore(),

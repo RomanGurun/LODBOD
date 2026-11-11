@@ -51,10 +51,13 @@ class _DashboardContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authNotifierProvider).valueOrNull;
+    final profile = ref.watch(userProfileProvider).valueOrNull;
     final recent = ref.watch(recentShipmentsProvider).valueOrNull ?? const [];
     final action = ref.watch(actionRequiredShipmentProvider).valueOrNull;
     final nextPickup = ref.watch(nextPickupShipmentProvider).valueOrNull;
-    final name = user?.displayName ?? '';
+    final profileName = profile?.name.trim() ?? '';
+    final name =
+        profileName.isNotEmpty ? profileName : (user?.displayName ?? '');
 
     if (stats.total == 0) {
       return const EmptyState(

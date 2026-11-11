@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:lodbod/core/errors/app_exception.dart';
 import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
 import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
 import 'package:lodbod/core/di/repository_providers.dart';
@@ -22,6 +23,13 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     });
     ref.onDispose(subscription.cancel);
     return repository.currentUser;
+  }
+
+  /// Adopts a session created outside [signIn]/[signUp] — Firebase phone
+  /// auto-verification completes on the datasource before this notifier sees
+  /// it.
+  void adoptUser(AuthUser user) {
+    state = AsyncData<AuthUser?>(user);
   }
 
   Future<void> signIn({
@@ -67,47 +75,105 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     });
   }
 
-  /// Writes the Firestore profile document `users/{uid}` for a newly
-  /// registered shipper. Failures are absorbed by the resilient profile
-  /// repository (in-memory fallback), never blocking sign-up itself.
+  /// Best-effort profile seed for email registration.
+  ///
+  /// The profile provider performs the authoritative get-or-create afterwards;
+  /// a profile write failure must never turn a successful sign-up into an
+  /// error, because the user is already authenticated and can retry safely.
   Future<void> _saveProfile(AuthUser user, {required String phone}) async {
     final profiles = ref.read(userProfileRepositoryProvider);
     final now = DateTime.now();
-    await profiles.saveProfile(
-      UserProfile(
-        uid: user.id,
-        name: user.displayName,
-        email: user.email,
-        phone: phone.trim(),
-        role: 'shipper',
-        createdAt: now,
-        updatedAt: now,
-      ),
-    );
+    try {
+      await profiles.saveProfile(
+        UserProfile(
+          uid: user.id,
+          name: user.displayName,
+          email: user.email,
+          phone: phone.trim(),
+          isPhoneVerified: false,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+    } on AppException {
+      // The completion screen offers a retry; the Firebase session is intact.
+    } catch (_) {
+      // Same as above: never block authentication on profile persistence.
+    }
   }
 }
 
 final authNotifierProvider =
     AsyncNotifierProvider<AuthNotifier, AuthUser?>(AuthNotifier.new);
 
-/// Firestore profile of the signed-in shipper (see `users/{uid}`), or a
-/// profile synthesized from the auth identity when none was stored.
-final userProfileProvider = FutureProvider<UserProfile?>((ref) async {
-  final user = await ref.watch(authNotifierProvider.future);
-  if (user == null) return null;
+/// Alias for [authNotifierProvider] under the name used in the auth spec.
+///
+/// Both names expose the same `AsyncValue<AuthUser?>`, so widgets can watch
+/// either one without creating a second source of truth.
+final authStateProvider = authNotifierProvider;
 
-  final repository = ref.watch(userProfileRepositoryProvider);
-  final stored = await repository.getProfile(user.id);
-  if (stored != null) return stored;
+/// Profile for the signed-in user, loaded from MockAPI `/users`.
+///
+/// On every session it resolves the profile by Firebase UID and creates a
+/// minimal record only when none exists. Because this provider watches the
+/// auth state, signing out clears the profile and signing in restores (or
+/// creates) it without ever duplicating an existing record.
+class ProfileNotifier extends AsyncNotifier<UserProfile?> {
+  @override
+  Future<UserProfile?> build() async {
+    final user = await ref.watch(authNotifierProvider.future);
+    if (user == null) return null;
 
-  // Missing profile is handled safely: fall back to auth identity data.
-  return UserProfile(
-    uid: user.id,
-    name: user.displayName,
-    email: user.email,
-    phone: '',
-    role: 'shipper',
-    createdAt: DateTime.now(),
-    updatedAt: DateTime.now(),
-  );
-});
+    final repository = ref.watch(userProfileRepositoryProvider);
+    return repository.ensureProfile(
+      uid: user.id,
+      phoneNumber: user.phoneNumber,
+      fullName: user.displayName,
+      email: user.email,
+    );
+  }
+
+  /// Persists the completion form and updates the in-memory state so the
+  /// router can leave the completion screen immediately.
+  Future<UserProfile> save({
+    required String fullName,
+    required String role,
+  }) async {
+    final user = ref.read(authNotifierProvider).valueOrNull;
+    if (user == null) {
+      throw const AuthException('Your session expired. Please sign in again.');
+    }
+
+    final trimmedName = fullName.trim();
+    if (trimmedName.isEmpty) {
+      throw const ValidationException('Please enter your full name.');
+    }
+
+    final existing = state.valueOrNull;
+    final now = DateTime.now();
+    final base = existing ??
+        UserProfile(
+          uid: user.id,
+          name: '',
+          email: user.email,
+          phone: user.phoneNumber,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+    final profile = base.copyWith(
+      name: trimmedName,
+      role: UserProfile.normalizeRole(role),
+      isPhoneVerified:
+          base.isPhoneVerified || user.phoneNumber.trim().isNotEmpty,
+      updatedAt: now,
+    );
+
+    await ref.read(userProfileRepositoryProvider).saveProfile(profile);
+    state = AsyncData<UserProfile?>(profile);
+    return profile;
+  }
+}
+
+final userProfileProvider =
+    AsyncNotifierProvider<ProfileNotifier, UserProfile?>(ProfileNotifier.new);

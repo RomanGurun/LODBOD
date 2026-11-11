@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/core/errors/app_exception.dart';
 import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
+import 'package:lodbod/features/auth/domain/entities/phone_verification.dart';
 import 'package:lodbod/features/auth/domain/repositories/i_auth_repository.dart';
 
 class MockAuthRepository implements IAuthRepository {
@@ -88,6 +89,59 @@ class MockAuthRepository implements IAuthRepository {
     _currentUser = null;
     _controller.add(null);
   }
+
+  @override
+  Future<PhoneVerification> requestPhoneVerification({
+    required String phoneNumber,
+    int? resendToken,
+  }) async {
+    // The demo store has no SMS transport. Never pretend a code was sent.
+    throw const AuthException(
+      'Phone sign-in requires Firebase. Configure the Firebase project to use '
+      'phone authentication, then try again.',
+    );
+  }
+
+  @override
+  Future<AuthUser> verifyPhoneOtp({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    throw const AuthException(
+      'Phone sign-in requires Firebase. Configure the Firebase project to use '
+      'phone authentication, then try again.',
+    );
+  }
+
+  @override
+  Future<PhoneVerification> requestPhoneLink({
+    required String phoneNumber,
+    required String email,
+    required String password,
+    int? resendToken,
+  }) async {
+    throw const AuthException(
+      'Phone sign-in requires Firebase. Configure the Firebase project to use '
+      'phone authentication, then try again.',
+    );
+  }
+
+  @override
+  Future<AuthUser> verifyPhoneLink({
+    required String phoneNumber,
+    required String verificationId,
+    required String smsCode,
+    required String email,
+    required String password,
+  }) async {
+    throw const AuthException(
+      'Phone sign-in requires Firebase. Configure the Firebase project to use '
+      'phone authentication, then try again.',
+    );
+  }
+
+  @override
+  Future<void> cancelPhoneLink() async {}
 
   void dispose() => _controller.close();
 }
