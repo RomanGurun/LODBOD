@@ -47,7 +47,7 @@ void main() {
     expect(
         find.byKey(const ValueKey<String>('auth-tab-email')), findsOneWidget);
     expect(find.text('Sign In & Send OTP'), findsOneWidget);
-    expect(find.byType(TextFormField), findsOneWidget);
+    expect(find.byType(TextFormField), findsNWidgets(2));
     expect(find.text('Keep me signed in'), findsNothing);
   });
 

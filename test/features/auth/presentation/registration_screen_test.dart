@@ -5,16 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/core/di/repository_providers.dart';
 import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
-import 'package:lodbod/features/auth/presentation/providers/phone_auth_controller.dart';
 import 'package:lodbod/features/auth/presentation/screens/registration_screen.dart';
 
 import '../../../support/fake_auth.dart';
 import '../../../support/fake_profile_repository.dart';
 
 void main() {
-  const button = 'Create account & verify phone';
+  const button = 'Create account';
 
   late FakeAuthRepository auth;
+  late FakeUserProfileRepository profiles;
   late ProviderContainer container;
   late GoRouter router;
 
@@ -25,12 +25,6 @@ void main() {
         GoRoute(
           path: '/register',
           builder: (context, state) => const RegistrationScreen(),
-        ),
-        GoRoute(
-          path: '/otp',
-          builder: (context, state) => const Scaffold(
-            body: Center(child: Text('OTP screen')),
-          ),
         ),
       ],
     );
@@ -71,12 +65,11 @@ void main() {
 
   setUp(() {
     auth = FakeAuthRepository.signedOut();
+    profiles = FakeUserProfileRepository();
     container = ProviderContainer(
       overrides: <Override>[
         authRepositoryProvider.overrideWithValue(auth),
-        userProfileRepositoryProvider.overrideWithValue(
-          FakeUserProfileRepository(),
-        ),
+        userProfileRepositoryProvider.overrideWithValue(profiles),
       ],
     );
   });
@@ -105,7 +98,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('sends an OTP that links email and phone into one user',
+  testWidgets(
+      'creates account with email, password, and saves unverified phone',
       (tester) async {
     await pumpScreen(tester);
     await fillForm(tester);
@@ -113,23 +107,14 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, button));
     await tester.pumpAndSettle();
 
-    expect(auth.lastPhoneNumber, '+9779841000000');
-    expect(find.text('OTP screen'), findsOneWidget);
-
-    final verified = await container
-        .read(phoneAuthControllerProvider.notifier)
-        .verify(FakeAuthRepository.validTestCode);
-
-    expect(verified, isTrue);
-    expect(auth.linkedEmail, 'aarav@shrestha.com.np');
-    expect(auth.linkedPassword, 'Shipper123');
-    expect(auth.linkedDisplayName, 'Aarav Shrestha');
-    expect(auth.linkedPhoneNumber, '+9779841000000');
-
     final user = container.read(authNotifierProvider).valueOrNull;
     expect(user?.email, 'aarav@shrestha.com.np');
     expect(user?.displayName, 'Aarav Shrestha');
-    expect(user?.phoneNumber, '+9779841000000');
+
+    final profile = profiles.stored('new-uid');
+    expect(profile?.email, 'aarav@shrestha.com.np');
+    expect(profile?.phone, '+9779841000000');
+    expect(profile?.isPhoneVerified, isFalse);
   });
 
   testWidgets('blocks submission until every field is filled', (tester) async {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lodbod/core/di/repository_providers.dart';
+import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
 import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:lodbod/features/auth/presentation/screens/login_screen.dart';
 import 'package:lodbod/features/auth/presentation/screens/otp_verification_screen.dart';
@@ -19,11 +20,21 @@ void main() {
 
   setUp(() {
     auth = FakeAuthRepository.signedOut();
+    final profile = UserProfile(
+      uid: 'user-1',
+      name: 'Aarav Shrestha',
+      email: 'aarav@shrestha.com.np',
+      phone: '+977$phone',
+      role: 'shipper',
+      isPhoneVerified: false,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+    );
     container = ProviderContainer(
       overrides: <Override>[
         authRepositoryProvider.overrideWithValue(auth),
         userProfileRepositoryProvider.overrideWithValue(
-          FakeUserProfileRepository(),
+          FakeUserProfileRepository(profiles: {profile.uid: profile}),
         ),
       ],
     );
@@ -62,11 +73,11 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('sends the OTP in E.164 without asking for a password',
-      (tester) async {
+  testWidgets('sends the OTP in E.164 after entering password', (tester) async {
     await pumpLogin(tester);
 
     await tester.enterText(find.byType(TextFormField).at(0), phone);
+    await tester.enterText(find.byType(TextFormField).at(1), 'Shipper123');
     await tester.tap(find.widgetWithText(FilledButton, 'Sign In & Send OTP'));
     await tester.pumpAndSettle();
 
@@ -83,6 +94,7 @@ void main() {
     await pumpLogin(tester);
 
     await tester.enterText(find.byType(TextFormField).at(0), phone);
+    await tester.enterText(find.byType(TextFormField).at(1), 'Shipper123');
     await tester.tap(find.widgetWithText(FilledButton, 'Sign In & Send OTP'));
     await tester.pumpAndSettle();
 

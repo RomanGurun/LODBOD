@@ -452,6 +452,39 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
         error.code == 'unknown';
   }
 
+  /// Password-specific error messages (login with email/password context).
+  String _messageForPassword(firebase.FirebaseAuthException error) {
+    switch (error.code) {
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return AppStrings.invalidCredentials;
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many sign-in attempts. Please wait and try again.';
+      default:
+        return _messageFor(error);
+    }
+  }
+
+  /// Phone-link specific error messages (linking phone to existing account).
+  String _messageForPhoneLink(firebase.FirebaseAuthException error) {
+    switch (error.code) {
+      case 'credential-already-in-use':
+        return 'This phone number is already linked to another account.';
+      case 'provider-already-linked':
+        return 'A phone number is already linked to this account.';
+      case 'invalid-verification-code':
+        return 'That code is incorrect. Check it and try again.';
+      case 'session-expired':
+      case 'invalid-verification-id':
+        return 'This verification has expired. Request a new code.';
+      default:
+        return _messageFor(error);
+    }
+  }
+
   String _messageFor(firebase.FirebaseAuthException error) {
     // Firebase reports a blocked destination behind `operation-not-allowed`
     // with a message like "SMS unable to be sent until this region enabled by

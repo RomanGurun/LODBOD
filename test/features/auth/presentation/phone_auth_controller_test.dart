@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lodbod/core/di/repository_providers.dart';
+import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
 import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:lodbod/features/auth/presentation/providers/phone_auth_controller.dart';
 
@@ -9,19 +10,33 @@ import '../../../support/fake_profile_repository.dart';
 
 void main() {
   late FakeAuthRepository auth;
+  late FakeUserProfileRepository profiles;
   late ProviderContainer container;
 
   const phone = '+9779812345678';
+  const email = 'aarav@shrestha.com.np';
   const password = 'Test@1234';
+
+  final profile = UserProfile(
+    uid: 'user-1',
+    name: 'Aarav Shrestha',
+    email: email,
+    phone: phone,
+    role: 'shipper',
+    isPhoneVerified: false,
+    createdAt: DateTime.utc(2026, 1, 1),
+    updatedAt: DateTime.utc(2026, 1, 1),
+  );
 
   setUp(() {
     auth = FakeAuthRepository.signedOut();
+    profiles = FakeUserProfileRepository(
+      profiles: {profile.uid: profile},
+    );
     container = ProviderContainer(
       overrides: <Override>[
         authRepositoryProvider.overrideWithValue(auth),
-        userProfileRepositoryProvider.overrideWithValue(
-          FakeUserProfileRepository(),
-        ),
+        userProfileRepositoryProvider.overrideWithValue(profiles),
       ],
     );
   });
@@ -30,13 +45,43 @@ void main() {
 
   Future<void> init() => container.read(authNotifierProvider.future);
 
+  test('phone login requires a password before sending an OTP', () async {
+    await init();
+
+    final result = await container
+        .read(phoneAuthControllerProvider.notifier)
+        .request(phoneNumber: phone);
+
+    expect(result, isNull);
+    expect(auth.lastPhoneNumber, isNull);
+    expect(
+      container.read(phoneAuthControllerProvider).error,
+      'Enter your password to continue.',
+    );
+  });
+
+  test('phone login rejects numbers with no registered account', () async {
+    await init();
+
+    final result = await container
+        .read(phoneAuthControllerProvider.notifier)
+        .request(phoneNumber: '+9779800000000', password: password);
+
+    expect(result, isNull);
+    expect(auth.lastPhoneNumber, isNull);
+    expect(
+      container.read(phoneAuthControllerProvider).error,
+      'No account found for this number. Create an account first.',
+    );
+  });
+
   test('requests an OTP and stores the verification session in memory',
       () async {
     await init();
 
     final result = await container
         .read(phoneAuthControllerProvider.notifier)
-        .request(phoneNumber: phone);
+        .request(phoneNumber: phone, password: password);
 
     expect(result, isNotNull);
     expect(auth.lastPhoneNumber, phone);
@@ -48,7 +93,8 @@ void main() {
     expect(state.autoVerified, isFalse);
   });
 
-  test('a valid code creates the authenticated session', () async {
+  test('a valid code creates the authenticated session and links phone',
+      () async {
     await init();
     final controller = container.read(phoneAuthControllerProvider.notifier);
     await controller.request(phoneNumber: phone, password: password);
@@ -57,8 +103,8 @@ void main() {
 
     expect(verified, isTrue);
     final user = container.read(authNotifierProvider).valueOrNull;
-    expect(user?.id, 'phone-uid');
     expect(user?.phoneNumber, phone);
+    expect(auth.linkedPhoneNumber, phone);
     expect(container.read(phoneAuthControllerProvider).autoVerified, isTrue);
   });
 
@@ -108,7 +154,7 @@ void main() {
 
     final result = await container
         .read(phoneAuthControllerProvider.notifier)
-        .request(phoneNumber: phone);
+        .request(phoneNumber: phone, password: password);
 
     expect(result?.autoVerifiedUser, isNotNull);
     expect(container.read(phoneAuthControllerProvider).autoVerified, isTrue);
@@ -121,97 +167,12 @@ void main() {
   test('clear resets the transient verification state', () async {
     await init();
     final controller = container.read(phoneAuthControllerProvider.notifier);
-    await controller.request(phoneNumber: phone);
+    await controller.request(phoneNumber: phone, password: password);
 
     controller.clear();
 
     final state = container.read(phoneAuthControllerProvider);
     expect(state.phoneNumber, isEmpty);
     expect(state.verificationId, isNull);
-  });
-
-  test('phone login sends an OTP without a password', () async {
-    await init();
-
-    final result = await container
-        .read(phoneAuthControllerProvider.notifier)
-        .request(phoneNumber: phone);
-
-    expect(result, isNotNull);
-    expect(auth.lastPhoneNumber, phone);
-    expect(auth.linkedPassword, isNull);
-  });
-
-  test('registration requires a password before sending an OTP', () async {
-    await init();
-
-    final result = await container
-        .read(phoneAuthControllerProvider.notifier)
-        .request(phoneNumber: phone, register: true);
-
-    expect(result, isNull);
-    expect(auth.lastPhoneNumber, isNull);
-    expect(
-      container.read(phoneAuthControllerProvider).error,
-      'Enter a password to create an account.',
-    );
-  });
-
-  test('registration attaches the password after verifying the code', () async {
-    await init();
-    final controller = container.read(phoneAuthControllerProvider.notifier);
-    await controller.request(
-      phoneNumber: phone,
-      password: password,
-      register: true,
-    );
-
-    final verified = await controller.verify(FakeAuthRepository.validTestCode);
-
-    expect(verified, isTrue);
-    expect(auth.linkedPassword, password);
-    expect(auth.linkedPhoneNumber, phone);
-  });
-
-  test('resending during registration keeps the password for auto-verification',
-      () async {
-    await init();
-    final controller = container.read(phoneAuthControllerProvider.notifier);
-    await controller.request(
-      phoneNumber: phone,
-      password: password,
-      register: true,
-    );
-
-    auth.autoVerifyNext = true;
-    await controller.request(phoneNumber: phone, resend: true);
-
-    expect(auth.linkedPassword, password);
-    expect(auth.linkedPhoneNumber, phone);
-  });
-
-  test('email registration links phone and email into the same account',
-      () async {
-    await init();
-    final controller = container.read(phoneAuthControllerProvider.notifier);
-
-    await controller.request(
-      phoneNumber: phone,
-      password: password,
-      register: true,
-      email: 'aarav@shrestha.com.np',
-      displayName: 'Aarav Shrestha',
-    );
-    final verified = await controller.verify(FakeAuthRepository.validTestCode);
-
-    expect(verified, isTrue);
-    expect(auth.linkedEmail, 'aarav@shrestha.com.np');
-    expect(auth.linkedPassword, password);
-    expect(auth.linkedDisplayName, 'Aarav Shrestha');
-
-    final user = container.read(authNotifierProvider).valueOrNull;
-    expect(user?.email, 'aarav@shrestha.com.np');
-    expect(user?.displayName, 'Aarav Shrestha');
-    expect(user?.phoneNumber, phone);
   });
 }

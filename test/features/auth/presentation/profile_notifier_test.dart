@@ -71,7 +71,7 @@ void main() {
 
     expect(first?.uid, uid);
     expect(first?.phone, phone);
-    expect(first?.isPhoneVerified, isTrue);
+    expect(first?.isPhoneVerified, isFalse);
     expect(first?.isComplete, isFalse);
     expect(profiles.ensureCalls, 1);
 

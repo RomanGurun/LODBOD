@@ -67,9 +67,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final phoneState = ref.watch(phoneAuthControllerProvider);
-    final isLoading = phoneState.isSending;
-    final error = phoneState.error;
+    final authState = ref.watch(authNotifierProvider);
+    final isLoading = authState.isLoading;
+    final error = authState.hasError ? authState.error.toString() : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -205,7 +205,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                 color: AppColors.textOnPrimary,
                               ),
                             )
-                          : const Text('Create account & verify phone'),
+                          : const Text('Create account'),
                     ),
                     const SizedBox(height: 16),
                     Center(

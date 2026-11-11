@@ -82,9 +82,6 @@ class FakeAuthRepository implements IAuthRepository {
   Future<PhoneVerification> requestPhoneVerification({
     required String phoneNumber,
     int? resendToken,
-    String? linkPassword,
-    String? linkEmail,
-    String? linkDisplayName,
   }) async {
     lastPhoneNumber = phoneNumber;
     if (resendToken != null) {
@@ -94,14 +91,10 @@ class FakeAuthRepository implements IAuthRepository {
 
     if (autoVerifyNext) {
       autoVerifyNext = false;
-      linkedPassword = linkPassword;
-      linkedEmail = linkEmail;
-      linkedDisplayName = linkDisplayName;
-      linkedPhoneNumber = linkPassword == null ? null : phoneNumber;
       final user = AuthUser(
         id: 'phone-uid',
-        email: linkEmail ?? '',
-        displayName: linkDisplayName ?? '',
+        email: '',
+        displayName: '',
         phoneNumber: phoneNumber,
       );
       _setUser(user);
@@ -119,9 +112,6 @@ class FakeAuthRepository implements IAuthRepository {
   Future<AuthUser> verifyPhoneOtp({
     required String verificationId,
     required String smsCode,
-    String? linkPassword,
-    String? linkEmail,
-    String? linkDisplayName,
   }) async {
     if (_verificationId == null || verificationId != _verificationId) {
       throw const AuthException(
@@ -132,18 +122,79 @@ class FakeAuthRepository implements IAuthRepository {
       throw const AuthException(
           'That code is incorrect. Check it and try again.');
     }
-    linkedPassword = linkPassword;
-    linkedEmail = linkEmail;
-    linkedDisplayName = linkDisplayName;
-    linkedPhoneNumber = linkPassword == null ? null : lastPhoneNumber;
     final user = AuthUser(
       id: 'phone-uid',
-      email: linkEmail ?? '',
-      displayName: linkDisplayName ?? '',
+      email: '',
+      displayName: '',
       phoneNumber: lastPhoneNumber ?? '',
     );
     _setUser(user);
     return user;
+  }
+
+  @override
+  Future<PhoneVerification> requestPhoneLink({
+    required String phoneNumber,
+    required String email,
+    required String password,
+    int? resendToken,
+  }) async {
+    lastPhoneNumber = phoneNumber;
+    linkedEmail = email;
+    linkedPassword = password;
+    if (resendToken != null) {
+      resendCount += 1;
+      lastResendToken = resendToken;
+    }
+    if (autoVerifyNext) {
+      autoVerifyNext = false;
+      final user = AuthUser(
+        id: _user?.id ?? 'phone-uid',
+        email: email,
+        displayName: _user?.displayName ?? '',
+        phoneNumber: phoneNumber,
+      );
+      _setUser(user);
+      return PhoneVerification(autoVerifiedUser: user);
+    }
+    _verificationId = 'test-link-$phoneNumber';
+    return PhoneVerification(
+      verificationId: _verificationId,
+      resendToken: 42,
+    );
+  }
+
+  @override
+  Future<AuthUser> verifyPhoneLink({
+    required String phoneNumber,
+    required String verificationId,
+    required String smsCode,
+    required String email,
+    required String password,
+  }) async {
+    if (_verificationId == null || verificationId != _verificationId) {
+      throw const AuthException(
+        'This verification has expired. Request a new code.',
+      );
+    }
+    if (smsCode != validTestCode) {
+      throw const AuthException(
+          'That code is incorrect. Check it and try again.');
+    }
+    linkedPhoneNumber = phoneNumber;
+    final user = AuthUser(
+      id: _user?.id ?? 'link-uid',
+      email: email,
+      displayName: _user?.displayName ?? '',
+      phoneNumber: phoneNumber,
+    );
+    _setUser(user);
+    return user;
+  }
+
+  @override
+  Future<void> cancelPhoneLink() async {
+    _verificationId = null;
   }
 
   @override

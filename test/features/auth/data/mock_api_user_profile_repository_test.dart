@@ -68,7 +68,7 @@ void main() {
 
     expect(first.uid, 'uid-1');
     expect(first.phone, '+9779812345678');
-    expect(first.isPhoneVerified, isTrue);
+    expect(first.isPhoneVerified, isFalse);
     expect(second.uid, 'uid-1');
     expect(dataSource.createCalls, 1);
     expect(dataSource.records, hasLength(1));

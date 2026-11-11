@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lodbod/core/di/repository_providers.dart';
+import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
 import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:lodbod/features/auth/presentation/providers/phone_auth_controller.dart';
 import 'package:lodbod/features/auth/presentation/screens/otp_verification_screen.dart';
@@ -17,13 +18,24 @@ void main() {
   const phone = '+9779812345678';
   const password = 'Test@1234';
 
+  final profile = UserProfile(
+    uid: 'user-1',
+    name: 'Aarav Shrestha',
+    email: 'aarav@shrestha.com.np',
+    phone: phone,
+    role: 'shipper',
+    isPhoneVerified: false,
+    createdAt: DateTime.utc(2026, 1, 1),
+    updatedAt: DateTime.utc(2026, 1, 1),
+  );
+
   setUp(() {
     auth = FakeAuthRepository.signedOut();
     container = ProviderContainer(
       overrides: <Override>[
         authRepositoryProvider.overrideWithValue(auth),
         userProfileRepositoryProvider.overrideWithValue(
-          FakeUserProfileRepository(),
+          FakeUserProfileRepository(profiles: {profile.uid: profile}),
         ),
       ],
     );
@@ -72,7 +84,8 @@ void main() {
     await disposeScreen(tester);
   });
 
-  testWidgets('shows the Firebase error for a wrong code', (tester) async {
+  testWidgets('shows the Firebase error and deletes all digits for a wrong code',
+      (tester) async {
     await sendOtp();
     await pumpScreen(tester);
 
@@ -80,10 +93,15 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Verify & continue'));
     await tester.pumpAndSettle();
 
+    // Prompts user with the failed/incorrect code error message
     expect(
       find.text('That code is incorrect. Check it and try again.'),
       findsOneWidget,
     );
+    // Deletes all OTP input so fields are emptied
+    final field = tester.widget<TextFormField>(find.byType(TextFormField));
+    expect(field.controller?.text, isEmpty);
+
     expect(container.read(authNotifierProvider).valueOrNull, isNull);
     await disposeScreen(tester);
   });
@@ -100,20 +118,29 @@ void main() {
     await disposeScreen(tester);
   });
 
-  testWidgets('resends with the Firebase resend token after the cooldown',
-      (tester) async {
+  testWidgets('does not display a resend code button', (tester) async {
     await sendOtp();
     await pumpScreen(tester);
 
-    expect(find.text('Resend in 30s'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 31));
-    expect(find.text('Resend code'), findsOneWidget);
+    expect(find.text('Resend code'), findsNothing);
+    expect(find.textContaining('Resend in'), findsNothing);
+    expect(find.text('Change phone number'), findsOneWidget);
+    await disposeScreen(tester);
+  });
 
-    await tester.tap(find.text('Resend code'));
-    await tester.pumpAndSettle();
+  testWidgets('renders responsively on narrow 320px screens without overflow',
+      (tester) async {
+    tester.view.physicalSize = const Size(320 * 2.0, 640 * 2.0);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-    expect(auth.resendCount, 1);
-    expect(auth.lastResendToken, 42);
+    await sendOtp();
+    await pumpScreen(tester);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Verify your number'), findsOneWidget);
+    expect(find.byType(TextFormField), findsOneWidget);
     await disposeScreen(tester);
   });
 
