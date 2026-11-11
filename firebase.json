@@ -1,1 +1,24 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"lodbod-shipper","appId":"1:69377495679:android:e0e39286f6822fd1cfa54a","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"lodbod-shipper","configurations":{"android":"1:69377495679:android:e0e39286f6822fd1cfa54a"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "lodbod-shipper",
+          "appId": "1:69377495679:android:e0e39286f6822fd1cfa54a",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "lodbod-shipper",
+          "configurations": {
+            "android": "1:69377495679:android:e0e39286f6822fd1cfa54a"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

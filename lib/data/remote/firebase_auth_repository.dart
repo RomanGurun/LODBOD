@@ -40,9 +40,18 @@ class FirebaseAuthRepository implements IAuthRepository {
     required String email,
     required String password,
   }) async {
+    // The demo account owns the seeded sample shipments and is
+    // authenticated locally by design, so the documented demo journey
+    // works even when Firebase is unreachable.
+    final normalized = email.trim().toLowerCase();
+    if (normalized == AppStrings.demoEmail &&
+        password == AppStrings.demoPassword) {
+      return _fallbackSignIn(email: email, password: password);
+    }
+
     try {
       final credential = await _firebaseAuth.signInWithEmailAndPassword(
-        email: email.trim(),
+        email: normalized,
         password: password,
       );
       final user = credential.user;
@@ -52,12 +61,28 @@ class FirebaseAuthRepository implements IAuthRepository {
       final mapped = _mapUser(user);
       _emit(mapped);
       return mapped;
-    } on firebase.FirebaseAuthException {
-      return _fallbackSignIn(email: email, password: password);
+    } on firebase.FirebaseAuthException catch (error) {
+      // Client-side failures (wrong password, unknown user, …) must not
+      // silently fall back to the local account store.
+      if (_isUnavailable(error)) {
+        return _fallbackSignIn(
+          email: email,
+          password: password,
+          unavailableMessage:
+              'Authentication service is unavailable. Please try again.',
+        );
+      }
+      throw AuthException(_messageFor(error));
     } on AuthException {
       rethrow;
     } on Exception {
-      return _fallbackSignIn(email: email, password: password);
+      // Firebase itself could not be reached/initialized at all.
+      return _fallbackSignIn(
+        email: email,
+        password: password,
+        unavailableMessage:
+            'Authentication service is unavailable. Please try again.',
+      );
     }
   }
 
@@ -103,6 +128,19 @@ class FirebaseAuthRepository implements IAuthRepository {
   }
 
   @override
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _firebaseAuth.sendPasswordResetEmail(email: email.trim());
+    } on firebase.FirebaseAuthException catch (error) {
+      throw AuthException(_messageFor(error));
+    } on Exception {
+      throw const AuthException(
+        'Password reset is unavailable right now. Please try again later.',
+      );
+    }
+  }
+
+  @override
   Future<void> signOut() async {
     try {
       await _firebaseAuth.signOut();
@@ -120,13 +158,14 @@ class FirebaseAuthRepository implements IAuthRepository {
   Future<AuthUser> _fallbackSignIn({
     required String email,
     required String password,
+    String? unavailableMessage,
   }) async {
     try {
       final user = await _fallback.signIn(email: email, password: password);
       _emit(user);
       return user;
     } on AuthException {
-      throw const AuthException(AppStrings.invalidCredentials);
+      throw AuthException(unavailableMessage ?? AppStrings.invalidCredentials);
     }
   }
 

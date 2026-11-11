@@ -73,6 +73,16 @@ class MockAuthRepository implements IAuthRepository {
   }
 
   @override
+  Future<void> sendPasswordResetEmail(String email) async {
+    await Future<void>.delayed(latency);
+    // The demo store has no mail transport — never pretend an email was sent.
+    throw const AuthException(
+      'Password reset is not available for demo accounts. '
+      'Register a Firebase account to use this feature.',
+    );
+  }
+
+  @override
   Future<void> signOut() async {
     await Future<void>.delayed(latency);
     _currentUser = null;

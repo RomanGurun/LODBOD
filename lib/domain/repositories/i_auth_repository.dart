@@ -13,5 +13,7 @@ abstract class IAuthRepository {
     required String displayName,
   });
 
+  Future<void> sendPasswordResetEmail(String email);
+
   Future<void> signOut();
 }

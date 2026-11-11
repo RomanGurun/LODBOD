@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,16 +6,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/data_source_status.dart';
 import '../../data/mock/mock_auth_repository.dart';
 import '../../data/mock/mock_shipment_repository.dart';
+import '../../data/mock/mock_user_profile_repository.dart';
 import '../../data/remote/api_shipment_repository.dart';
 import '../../data/remote/firebase_auth_repository.dart';
+import '../../data/remote/firestore_user_profile_repository.dart';
 import '../../data/remote/interceptors/data_source_interceptor.dart';
 import '../../data/remote/interceptors/retry_interceptor.dart';
 import '../../data/remote/interceptors/safe_log_interceptor.dart';
 import '../../data/repositories/resilient_shipment_repository.dart';
+import '../../data/repositories/resilient_user_profile_repository.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../../domain/repositories/i_shipment_repository.dart';
+import '../../domain/repositories/i_user_profile_repository.dart';
 
-const String _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+/// Primary MockAPI base URL. Override with
+/// `--dart-define=API_BASE_URL=https://…` to point the app at another
+/// backend while keeping the same repository contract.
+const String _apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'https://6af2103d42c6561ced38f683.mockapi.io',
+);
 
 final dataSourceStatusProvider = Provider<DataSourceStatus>((ref) {
   final status = DataSourceStatus();
@@ -58,6 +69,21 @@ final authRepositoryProvider = Provider<IAuthRepository>((ref) {
     ref.onDispose(repository.dispose);
     return repository;
   } catch (_) {
+    return fallback;
+  }
+});
+
+/// Remote-first user profile repository (Firestore `users/{uid}`) with an
+/// in-memory fallback when Firestore cannot be reached.
+final userProfileRepositoryProvider = Provider<IUserProfileRepository>((ref) {
+  final fallback = MockUserProfileRepository();
+
+  try {
+    final firestore = FirebaseFirestore.instance;
+    final remote = FirestoreUserProfileRepository(firestore: firestore);
+    return ResilientUserProfileRepository(remote: remote, fallback: fallback);
+  } catch (_) {
+    // Firebase is not available on this platform/build — in-memory only.
     return fallback;
   }
 });

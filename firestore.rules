@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// LODBOD Shipper — Firestore security rules.
+//
+// Scope: the shipper app only touches `users/{uid}` profile documents.
+// Rules enforce:
+//   * a signed-in user may read/update only their own profile,
+//   * the role field can never be created as anything but "shipper" by the
+//     client, and can never be changed after creation (no privilege
+//     escalation to carrier/admin),
+//   * identity fields (uid) cannot be rewritten,
+//   * deletes are denied to clients.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow get, list: if isOwner(uid);
+
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.role == 'shipper';
+
+      allow update: if isOwner(uid)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role;
+
+      allow delete: if false;
+    }
+  }
+
+  function isOwner(uid) {
+    return request.auth != null && request.auth.uid == uid;
+  }
+}
