@@ -126,17 +126,5 @@ List<BidModel> buildSeedBids({DateTime? now}) {
       status: 'pending',
       createdAt: past(6, hour: 13),
     ),
-    BidModel(
-      id: '3',
-      shipmentId: '2',
-      carrierName: 'Sagarmatha Logistics',
-      carrierRating: 4.4,
-      carrierVerified: true,
-      fare: 30500,
-      etaDays: 2,
-      estimatedDeliveryAt: future(14, hour: 18),
-      status: 'pending',
-      createdAt: past(6, hour: 14),
-    ),
   ];
 }

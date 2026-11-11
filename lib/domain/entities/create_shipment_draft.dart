@@ -13,6 +13,13 @@ class CreateShipmentDraft {
   final String currency;
   final String notes;
 
+  /// Authenticated shipper's Firebase UID. Stamped by the application layer
+  /// before submission so every created shipment records its owner.
+  final String? shipperId;
+
+  /// Display name of the shipper that created the shipment.
+  final String shipperName;
+
   const CreateShipmentDraft({
     required this.pickupCity,
     required this.pickupAddress,
@@ -27,7 +34,14 @@ class CreateShipmentDraft {
     this.expectedFare = 0,
     this.currency = 'NPR',
     this.notes = '',
+    this.shipperId,
+    this.shipperName = 'Demo Shipper',
   });
+
+  /// Returns a copy stamped with the owning shipper's identity.
+  CreateShipmentDraft ownedBy({required String uid, required String name}) {
+    return copyWith(shipperId: uid, shipperName: name);
+  }
 
   CreateShipmentDraft copyWith({
     String? pickupCity,
@@ -43,6 +57,8 @@ class CreateShipmentDraft {
     double? expectedFare,
     String? currency,
     String? notes,
+    String? shipperId,
+    String? shipperName,
   }) {
     return CreateShipmentDraft(
       pickupCity: pickupCity ?? this.pickupCity,
@@ -58,6 +74,8 @@ class CreateShipmentDraft {
       expectedFare: expectedFare ?? this.expectedFare,
       currency: currency ?? this.currency,
       notes: notes ?? this.notes,
+      shipperId: shipperId ?? this.shipperId,
+      shipperName: shipperName ?? this.shipperName,
     );
   }
 }

@@ -21,12 +21,12 @@ void main() {
     expect(ShipmentLimitRule.countActive(shipments), 2);
   });
 
-  test('LOD-1002 exposes three pending bids', () async {
+  test('LOD-1002 exposes two pending bids', () async {
     final shipment = await repository.getShipmentById('2');
 
     expect(shipment.reference, 'LOD-1002');
     expect(shipment.status, ShipmentStatus.awaitingBids);
-    expect(shipment.bids, hasLength(3));
+    expect(shipment.bids, hasLength(2));
     expect(
       shipment.bids.every((bid) => bid.status == BidStatus.pending),
       isTrue,
@@ -86,7 +86,7 @@ void main() {
     );
     expect(
       updated.bids.where((bid) => bid.status == BidStatus.rejected),
-      hasLength(2),
+      hasLength(1),
     );
   });
 

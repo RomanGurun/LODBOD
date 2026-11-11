@@ -5,6 +5,7 @@ class Shipment {
   final String id;
   final String reference;
   final String shipperName;
+  final String? shipperId;
   final String pickupCity;
   final String pickupAddress;
   final String destinationCity;
@@ -29,6 +30,7 @@ class Shipment {
     required this.id,
     required this.reference,
     required this.shipperName,
+    this.shipperId,
     required this.pickupCity,
     required this.pickupAddress,
     required this.destinationCity,
@@ -77,6 +79,7 @@ class Shipment {
     String? id,
     String? reference,
     String? shipperName,
+    Object? shipperId = _sentinel,
     String? pickupCity,
     String? pickupAddress,
     String? destinationCity,
@@ -101,6 +104,9 @@ class Shipment {
       id: id ?? this.id,
       reference: reference ?? this.reference,
       shipperName: shipperName ?? this.shipperName,
+      shipperId: identical(shipperId, _sentinel)
+          ? this.shipperId
+          : shipperId as String?,
       pickupCity: pickupCity ?? this.pickupCity,
       pickupAddress: pickupAddress ?? this.pickupAddress,
       destinationCity: destinationCity ?? this.destinationCity,
@@ -135,6 +141,7 @@ class Shipment {
             id == other.id &&
             reference == other.reference &&
             shipperName == other.shipperName &&
+            shipperId == other.shipperId &&
             pickupCity == other.pickupCity &&
             pickupAddress == other.pickupAddress &&
             destinationCity == other.destinationCity &&
@@ -161,6 +168,7 @@ class Shipment {
         id,
         reference,
         shipperName,
+        shipperId,
         pickupCity,
         pickupAddress,
         destinationCity,

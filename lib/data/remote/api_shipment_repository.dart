@@ -112,7 +112,8 @@ class ApiShipmentRepository implements IShipmentRepository {
         '/shipments',
         data: <String, dynamic>{
           'reference': reference,
-          'shipperName': 'Demo Shipper',
+          'shipperName': draft.shipperName,
+          'shipperId': draft.shipperId ?? '',
           'pickupCity': draft.pickupCity.trim(),
           'pickupAddress': draft.pickupAddress.trim(),
           'destinationCity': draft.destinationCity.trim(),

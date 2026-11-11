@@ -52,11 +52,13 @@ Map<String, dynamic> _shipment({
   required String createdAt,
   String pickupCity = 'Kathmandu',
   String destinationCity = 'Pokhara',
+  String shipperId = '',
 }) {
   return <String, dynamic>{
     'id': id,
     'reference': reference,
     'shipperName': 'Demo Shipper',
+    'shipperId': shipperId,
     'pickupCity': pickupCity,
     'pickupAddress': 'Pickup address',
     'destinationCity': destinationCity,
@@ -206,6 +208,8 @@ void main() {
       vehicleType: 'truck_6w',
       pickupAt: DateTime.now().add(const Duration(days: 2)),
       expectedFare: 15000,
+      shipperId: 'uid-123',
+      shipperName: 'Aarav Shrestha',
     );
 
     final created = await repo.createShipment(draft);
@@ -216,8 +220,46 @@ void main() {
     expect(body['reference'], 'LOD-1005');
     expect(body['status'], 'open');
     expect(body['pickupCity'], 'Kathmandu');
+    expect(body['shipperId'], 'uid-123');
+    expect(body['shipperName'], 'Aarav Shrestha');
     expect(created.reference, 'LOD-1005');
     expect(created.status, ShipmentStatus.open);
+    expect(created.shipperId, 'uid-123');
+  });
+
+  test('parses shipperId and treats blank values as absent', () async {
+    final shipments = <Map<String, dynamic>>[
+      _shipment(
+        id: '1',
+        reference: 'LOD-1001',
+        status: 'in_transit',
+        createdAt: '2026-11-02T10:00:00.000Z',
+        shipperId: 'uid-owner',
+      ),
+      _shipment(
+        id: '2',
+        reference: 'LOD-1002',
+        status: 'awaiting_bids',
+        createdAt: '2026-11-03T10:00:00.000Z',
+      ),
+    ];
+
+    // The repository also fetches /bids for the shipments; answer that path
+    // with an empty list so only shipment rows are parsed.
+    final repo = _repository((options) {
+      if (options.path.endsWith('/bids')) return _json(<Map<String, dynamic>>[]);
+      return _json(shipments);
+    });
+
+    final all = await repo.getShipments();
+
+    final owned =
+        all.firstWhere((shipment) => shipment.reference == 'LOD-1001');
+    final legacy =
+        all.firstWhere((shipment) => shipment.reference == 'LOD-1002');
+    expect(owned.shipperId, 'uid-owner');
+    // Legacy seed rows come back with a null owner, never an empty string.
+    expect(legacy.shipperId, isNull);
   });
 
   test('accepts one bid, rejects the others and confirms the shipment',

@@ -6,6 +6,7 @@ class ShipmentModel {
   final String id;
   final String reference;
   final String shipperName;
+  final String? shipperId;
   final String pickupCity;
   final String pickupAddress;
   final String destinationCity;
@@ -29,6 +30,7 @@ class ShipmentModel {
     required this.id,
     required this.reference,
     required this.shipperName,
+    this.shipperId,
     required this.pickupCity,
     required this.pickupAddress,
     required this.destinationCity,
@@ -56,6 +58,7 @@ class ShipmentModel {
       id: shipment.id,
       reference: shipment.reference,
       shipperName: shipment.shipperName,
+      shipperId: shipment.shipperId,
       pickupCity: shipment.pickupCity,
       pickupAddress: shipment.pickupAddress,
       destinationCity: shipment.destinationCity,
@@ -82,6 +85,7 @@ class ShipmentModel {
       id: json['id'].toString(),
       reference: json['reference'] as String? ?? '',
       shipperName: json['shipperName'] as String? ?? '',
+      shipperId: _blankToNull(json['shipperId']),
       pickupCity: json['pickupCity'] as String? ?? '',
       pickupAddress: json['pickupAddress'] as String? ?? '',
       destinationCity: json['destinationCity'] as String? ?? '',
@@ -107,6 +111,7 @@ class ShipmentModel {
         'id': id,
         'reference': reference,
         'shipperName': shipperName,
+        'shipperId': shipperId ?? '',
         'pickupCity': pickupCity,
         'pickupAddress': pickupAddress,
         'destinationCity': destinationCity,
@@ -131,6 +136,7 @@ class ShipmentModel {
         id: id,
         reference: reference,
         shipperName: shipperName,
+        shipperId: shipperId,
         pickupCity: pickupCity,
         pickupAddress: pickupAddress,
         destinationCity: destinationCity,
@@ -156,6 +162,7 @@ class ShipmentModel {
     String? id,
     String? reference,
     String? shipperName,
+    Object? shipperId = _sentinel,
     String? pickupCity,
     String? pickupAddress,
     String? destinationCity,
@@ -179,6 +186,9 @@ class ShipmentModel {
       id: id ?? this.id,
       reference: reference ?? this.reference,
       shipperName: shipperName ?? this.shipperName,
+      shipperId: identical(shipperId, _sentinel)
+          ? this.shipperId
+          : shipperId as String?,
       pickupCity: pickupCity ?? this.pickupCity,
       pickupAddress: pickupAddress ?? this.pickupAddress,
       destinationCity: destinationCity ?? this.destinationCity,

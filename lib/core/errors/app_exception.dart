@@ -45,3 +45,8 @@ class ConflictException extends AppException {
   const ConflictException(
       [super.message = 'This action has already been performed.']);
 }
+
+class ForbiddenException extends AppException {
+  const ForbiddenException(
+      [super.message = 'You do not have permission to do this.']);
+}

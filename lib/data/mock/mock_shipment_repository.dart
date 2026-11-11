@@ -84,7 +84,8 @@ class MockShipmentRepository implements IShipmentRepository {
     final model = ShipmentModel(
       id: _nextId(),
       reference: _nextReference(),
-      shipperName: 'Demo Shipper',
+      shipperName: draft.shipperName,
+      shipperId: draft.shipperId,
       pickupCity: draft.pickupCity.trim(),
       pickupAddress: draft.pickupAddress.trim(),
       destinationCity: draft.destinationCity.trim(),
