@@ -18,6 +18,26 @@ class Validators {
     return null;
   }
 
+  /// Validates that [value] is a valid Gmail address ending in @gmail.com.
+  ///
+  /// Usernames can contain letters, numbers, and non-consecutive dots,
+  /// with a length of 3 to 30 characters.
+  static String? gmail(String? value) {
+    if (value == null || value.trim().isEmpty) return AppStrings.fieldRequired;
+    final v = value.trim().toLowerCase();
+    if (!v.endsWith('@gmail.com')) {
+      return 'Enter a valid Gmail address ending in @gmail.com';
+    }
+    final username = v.substring(0, v.length - '@gmail.com'.length);
+    if (username.length < 3 || username.length > 30) {
+      return 'Gmail username must be between 3 and 30 characters';
+    }
+    if (!RegExp(r'^[a-z0-9]+(\.[a-z0-9]+)*$').hasMatch(username)) {
+      return 'Enter a valid Gmail username (letters, numbers, dots)';
+    }
+    return null;
+  }
+
   static String? emailOrPhone(String? value) {
     if (value == null || value.trim().isEmpty) return AppStrings.fieldRequired;
     final v = value.trim();

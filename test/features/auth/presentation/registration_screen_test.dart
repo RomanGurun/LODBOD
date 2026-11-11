@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/core/di/repository_providers.dart';
-import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:lodbod/features/auth/presentation/screens/registration_screen.dart';
 
 import '../../../support/fake_auth.dart';
@@ -25,6 +24,11 @@ void main() {
         GoRoute(
           path: '/register',
           builder: (context, state) => const RegistrationScreen(),
+        ),
+        GoRoute(
+          path: '/login',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Login Screen')),
         ),
       ],
     );
@@ -50,7 +54,7 @@ void main() {
   Future<void> fillForm(
     WidgetTester tester, {
     String phone = '9841000000',
-    String email = 'aarav@shrestha.com.np',
+    String email = 'aarav.shrestha@gmail.com',
     String password = 'Shipper123',
     String confirm = 'Shipper123',
   }) async {
@@ -99,7 +103,7 @@ void main() {
   });
 
   testWidgets(
-      'creates account with email, password, and saves unverified phone',
+      'creates account with email, password, and redirects to login with success snackbar',
       (tester) async {
     await pumpScreen(tester);
     await fillForm(tester);
@@ -107,12 +111,15 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, button));
     await tester.pumpAndSettle();
 
-    final user = container.read(authNotifierProvider).valueOrNull;
-    expect(user?.email, 'aarav@shrestha.com.np');
-    expect(user?.displayName, 'Aarav Shrestha');
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(
+      find.text('Account created successfully! Please log in.'),
+      findsOneWidget,
+    );
+    expect(find.text('Login Screen'), findsOneWidget);
 
     final profile = profiles.stored('new-uid');
-    expect(profile?.email, 'aarav@shrestha.com.np');
+    expect(profile?.email, 'aarav.shrestha@gmail.com');
     expect(profile?.phone, '+9779841000000');
     expect(profile?.isPhoneVerified, isFalse);
   });
@@ -121,7 +128,7 @@ void main() {
     await pumpScreen(tester);
 
     await tester.enterText(
-        find.byType(TextFormField).at(2), 'aarav@shrestha.com.np');
+        find.byType(TextFormField).at(2), 'aarav.shrestha@gmail.com');
     await tester.enterText(find.byType(TextFormField).at(3), 'Shipper123');
     await tester.enterText(find.byType(TextFormField).at(4), 'Shipper123');
     await tester.pumpAndSettle();
@@ -164,5 +171,50 @@ void main() {
 
     expect(find.text(AppStrings.invalidNepalPhone), findsOneWidget);
     expect(auth.lastPhoneNumber, isNull);
+  });
+
+  testWidgets('rejects a non-Gmail address', (tester) async {
+    await pumpScreen(tester);
+    await fillForm(tester, email: 'aarav@shrestha.com.np');
+
+    await tester.tap(find.widgetWithText(FilledButton, button));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Enter a valid Gmail address ending in @gmail.com'),
+      findsOneWidget,
+    );
+    expect(auth.lastPhoneNumber, isNull);
+  });
+
+  testWidgets('rejects an invalid Gmail username', (tester) async {
+    await pumpScreen(tester);
+    await fillForm(tester, email: 'ab@gmail.com');
+
+    await tester.tap(find.widgetWithText(FilledButton, button));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Gmail username must be between 3 and 30 characters'),
+      findsOneWidget,
+    );
+    expect(auth.lastPhoneNumber, isNull);
+  });
+
+  testWidgets('shows a SnackBar message when duplicate Gmail is registered',
+      (tester) async {
+    auth.registeredEmails.add('existing.user@gmail.com');
+
+    await pumpScreen(tester);
+    await fillForm(tester, email: 'existing.user@gmail.com');
+
+    await tester.tap(find.widgetWithText(FilledButton, button));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(
+      find.text('An account with this email already exists.'),
+      findsWidgets,
+    );
   });
 }

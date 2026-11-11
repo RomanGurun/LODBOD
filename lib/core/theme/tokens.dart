@@ -164,6 +164,6 @@ class AppDurations {
   static const Duration fast = Duration(milliseconds: 150);
   static const Duration normal = Duration(milliseconds: 250);
   static const Duration page = Duration(milliseconds: 350);
-  static const Duration splash = Duration(milliseconds: 900);
+  static const Duration splash = Duration(milliseconds: 2000);
   static const Duration shimmer = Duration(milliseconds: 1400);
 }

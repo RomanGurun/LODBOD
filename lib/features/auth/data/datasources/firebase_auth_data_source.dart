@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:firebase_core/firebase_core.dart' as core;
+import 'package:flutter/foundation.dart';
 
 import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/core/errors/app_exception.dart';
@@ -29,6 +30,10 @@ abstract class FirebaseAuthDataSource {
     required String password,
     required String displayName,
   });
+
+  Future<void> sendEmailVerification();
+
+  Future<AuthUser> reloadUser();
 
   Future<void> sendPasswordResetEmail(String email);
 
@@ -108,14 +113,55 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
         email: email.trim(),
         password: password,
       );
-      final user = _requireUser(credential.user);
       if (displayName.trim().isNotEmpty) {
         await credential.user!.updateDisplayName(displayName.trim());
-        return _mapUser(_firebaseAuth.currentUser ?? credential.user!);
       }
-      return user;
+      try {
+        debugPrint(
+          'Dispatching Firebase email verification to ${credential.user?.email}',
+        );
+        await credential.user!.sendEmailVerification();
+        debugPrint('Firebase email verification dispatched successfully');
+      } catch (error) {
+        debugPrint('Firebase sendEmailVerification during sign-up failed: $error');
+        // Account is created; user can resend from the verification screen if this threw.
+      }
+      return _mapUser(_firebaseAuth.currentUser ?? credential.user!);
     } on firebase.FirebaseAuthException catch (error) {
       throw _mapEmailError(error);
+    }
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const AuthException('No user is currently signed in.');
+    }
+    try {
+      debugPrint('Resending Firebase email verification to ${user.email}');
+      await user.sendEmailVerification();
+      debugPrint('Firebase email verification resent successfully');
+    } on firebase.FirebaseAuthException catch (error) {
+      debugPrint(
+        'Firebase resend email verification failed: ${error.code} - ${error.message}',
+      );
+      throw AuthException(_messageFor(error));
+    }
+  }
+
+  @override
+  Future<AuthUser> reloadUser() async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) {
+      throw const AuthException('No user is currently signed in.');
+    }
+    try {
+      await user.reload();
+      final refreshed = _firebaseAuth.currentUser ?? user;
+      return _mapUser(refreshed);
+    } on firebase.FirebaseAuthException catch (error) {
+      throw AuthException(_messageFor(error));
     }
   }
 
@@ -443,6 +489,7 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
       email: email,
       displayName: fallbackName,
       phoneNumber: phone,
+      isEmailVerified: user.emailVerified,
     );
   }
 

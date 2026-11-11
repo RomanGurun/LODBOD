@@ -62,6 +62,18 @@ class AuthNotifier extends AsyncNotifier<AuthUser?> {
     });
   }
 
+  Future<void> sendEmailVerification() async {
+    final repository = ref.read(authRepositoryProvider);
+    await repository.sendEmailVerification();
+  }
+
+  Future<AuthUser> reloadUser() async {
+    final repository = ref.read(authRepositoryProvider);
+    final user = await repository.reloadUser();
+    state = AsyncData<AuthUser?>(user);
+    return user;
+  }
+
   Future<void> sendPasswordResetEmail(String email) {
     return ref.read(authRepositoryProvider).sendPasswordResetEmail(email);
   }

@@ -72,7 +72,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           ),
           const SizedBox(height: 24),
 
-          // PREFERENCES section — local, session-scoped demo preferences.
+          // PREFERENCES section
           const _SectionLabel('PREFERENCES'),
           const SizedBox(height: 8),
           _SettingsCard(
@@ -83,7 +83,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                 value: _pushNotifications,
                 onChanged: (v) {
                   setState(() => _pushNotifications = v);
-                  _prefSavedSnack();
+                  _onPreferenceChanged('Push notifications', v);
                 },
               ),
               const _TileDivider(),
@@ -93,7 +93,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                 value: _smsAlerts,
                 onChanged: (v) {
                   setState(() => _smsAlerts = v);
-                  _prefSavedSnack();
+                  _onPreferenceChanged('SMS alerts', v);
                 },
               ),
               const _TileDivider(),
@@ -103,7 +103,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                 value: _emailDigest,
                 onChanged: (v) {
                   setState(() => _emailDigest = v);
-                  _prefSavedSnack();
+                  _onPreferenceChanged('Email digest', v);
                 },
               ),
             ],
@@ -162,68 +162,67 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Sign out + Delete account — side-by-side
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 36,
-                  child: OutlinedButton(
-                    onPressed:
-                        isLoading ? null : () => _confirmSignOut(context, ref),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: Size.zero,
-                      padding: EdgeInsets.zero,
-                      textStyle: const TextStyle(
-                        fontFamily: AppTypography.fontFamily,
-                        fontSize: AppTypography.caption,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    child: const Text(AppStrings.logout),
-                  ),
+          const SizedBox(height: 32),
+
+          // Sign out button with proper spacing, full touch width, and clear styling
+          SizedBox(
+            width: double.infinity,
+            height: AppSizes.buttonHeight,
+            child: OutlinedButton.icon(
+              onPressed:
+                  isLoading ? null : () => _confirmSignOut(context, ref),
+              icon: const Icon(Icons.logout_rounded, size: 20),
+              label: const Text(AppStrings.logout),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.error,
+                side: const BorderSide(color: AppColors.error, width: 1.5),
+                textStyle: const TextStyle(
+                  fontFamily: AppTypography.fontFamily,
+                  fontSize: AppTypography.body,
+                  fontWeight: FontWeight.w600,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                 ),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: SizedBox(
-                  height: 36,
-                  child: OutlinedButton(
-                    onPressed: () => _showPrototypeNote(
-                      context,
-                      'Account deletion is not part of this prototype. '
-                      'Contact LODBOD support to remove an account.',
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: Size.zero,
-                      padding: EdgeInsets.zero,
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                      textStyle: const TextStyle(
-                        fontFamily: AppTypography.fontFamily,
-                        fontSize: AppTypography.caption,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    child: const Text('Delete account'),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton(
+              onPressed: () => _showPrototypeNote(
+                context,
+                'Account deletion is currently handled by LODBOD support. '
+                'Please contact support@lodbod.com to delete your account.',
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.textTertiary,
+              ),
+              child: const Text(
+                'Delete account',
+                style: TextStyle(
+                  fontFamily: AppTypography.fontFamily,
+                  fontSize: AppTypography.caption,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
         ],
       ),
     );
   }
 
-  void _prefSavedSnack() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Preference saved for this demo session'),
-        duration: Duration(seconds: 1),
-      ),
-    );
+  void _onPreferenceChanged(String name, bool enabled) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('$name ${enabled ? 'enabled' : 'disabled'}'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   String _profileSubtitle(UserProfile? profile, AuthUser? user) {
@@ -380,18 +379,94 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Sign out?'),
-          content: const Text(
-            'You will need to sign in again to manage shipments.',
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusLg),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text(AppStrings.cancel),
+          icon: Center(
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: AppColors.error,
+                size: 24,
+              ),
             ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text(AppStrings.logout),
+          ),
+          title: const Text(
+            'Sign out?',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppTypography.fontFamily,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: const Text(
+            'You will need to sign in again to manage your shipments.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppTypography.fontFamily,
+              color: AppColors.textSecondary,
+              fontSize: AppTypography.body,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textPrimary,
+                        side: const BorderSide(
+                          color: AppColors.border,
+                          width: 1.2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppSizes.radiusMd),
+                        ),
+                        textStyle: const TextStyle(
+                          fontFamily: AppTypography.fontFamily,
+                          fontWeight: FontWeight.w600,
+                          fontSize: AppTypography.section,
+                        ),
+                      ),
+                      child: const Text(AppStrings.cancel),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        foregroundColor: AppColors.textOnPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppSizes.radiusMd),
+                        ),
+                        textStyle: const TextStyle(
+                          fontFamily: AppTypography.fontFamily,
+                          fontWeight: FontWeight.w600,
+                          fontSize: AppTypography.section,
+                        ),
+                      ),
+                      child: const Text(AppStrings.logout),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         );

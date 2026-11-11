@@ -60,4 +60,49 @@ void main() {
           'Enter a valid 10-digit Nepal mobile number');
     });
   });
+
+  group('Validators.gmail', () {
+    test('accepts valid Gmail addresses', () {
+      expect(Validators.gmail('aarav.shrestha@gmail.com'), isNull);
+      expect(Validators.gmail('user123@gmail.com'), isNull);
+      expect(Validators.gmail('john.doe.123@GMAIL.COM'), isNull);
+    });
+
+    test('rejects non-gmail domains', () {
+      expect(
+        Validators.gmail('user@yahoo.com'),
+        'Enter a valid Gmail address ending in @gmail.com',
+      );
+      expect(
+        Validators.gmail('user@company.com'),
+        'Enter a valid Gmail address ending in @gmail.com',
+      );
+    });
+
+    test('rejects too short or too long usernames', () {
+      expect(
+        Validators.gmail('ab@gmail.com'),
+        'Gmail username must be between 3 and 30 characters',
+      );
+    });
+
+    test('rejects invalid characters and consecutive dots', () {
+      expect(
+        Validators.gmail('user..name@gmail.com'),
+        'Enter a valid Gmail username (letters, numbers, dots)',
+      );
+      expect(
+        Validators.gmail('.username@gmail.com'),
+        'Enter a valid Gmail username (letters, numbers, dots)',
+      );
+      expect(
+        Validators.gmail('username.@gmail.com'),
+        'Enter a valid Gmail username (letters, numbers, dots)',
+      );
+      expect(
+        Validators.gmail('user_name@gmail.com'),
+        'Enter a valid Gmail username (letters, numbers, dots)',
+      );
+    });
+  });
 }

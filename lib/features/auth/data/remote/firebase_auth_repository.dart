@@ -127,6 +127,34 @@ class FirebaseAuthRepository implements IAuthRepository {
   }
 
   @override
+  Future<void> sendEmailVerification() async {
+    try {
+      await _dataSource.sendEmailVerification();
+    } on AuthException {
+      rethrow;
+    } catch (error) {
+      throw AuthException(
+        'Failed to send verification email. Please check your connection and try again.',
+      );
+    }
+  }
+
+  @override
+  Future<AuthUser> reloadUser() async {
+    try {
+      final user = await _dataSource.reloadUser();
+      _emit(user);
+      return user;
+    } on AuthException {
+      rethrow;
+    } catch (error) {
+      throw AuthException(
+        'Failed to refresh user status. Please check your connection and try again.',
+      );
+    }
+  }
+
+  @override
   Future<void> sendPasswordResetEmail(String email) {
     return _dataSource.sendPasswordResetEmail(email);
   }

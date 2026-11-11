@@ -19,6 +19,7 @@ class FakeAuthRepository implements IAuthRepository {
     id: 'demo-1',
     email: 'demo@lodbod.com',
     displayName: 'Aarav Shrestha',
+    isEmailVerified: true,
   );
 
   /// Code accepted by [verifyPhoneOtp]. Test-only value; production code must
@@ -43,6 +44,18 @@ class FakeAuthRepository implements IAuthRepository {
   /// When true the next [requestPhoneVerification] behaves like Android
   /// auto-retrieval and signs the user in immediately.
   bool autoVerifyNext = false;
+
+  /// Optional error message to throw on [signUp].
+  String? signUpError;
+
+  /// Emails already registered with this repository.
+  final Set<String> registeredEmails = <String>{'demo@lodbod.com'};
+
+  /// Whether created or reloaded users are marked email-verified.
+  bool isEmailVerified = true;
+
+  /// Counts how many times [sendEmailVerification] was called.
+  int sendEmailVerificationCount = 0;
 
   @override
   AuthUser? get currentUser => _user;
@@ -70,7 +83,35 @@ class FakeAuthRepository implements IAuthRepository {
     required String password,
     required String displayName,
   }) async {
-    _user = AuthUser(id: 'new-uid', email: email, displayName: displayName);
+    if (signUpError != null) {
+      throw AuthException(signUpError!);
+    }
+    final normalized = email.trim().toLowerCase();
+    if (registeredEmails.contains(normalized)) {
+      throw const AuthException('An account with this email already exists.');
+    }
+    registeredEmails.add(normalized);
+    _user = AuthUser(
+      id: 'new-uid',
+      email: email,
+      displayName: displayName,
+      isEmailVerified: isEmailVerified,
+    );
+    _controller.add(_user);
+    return _user!;
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    sendEmailVerificationCount += 1;
+  }
+
+  @override
+  Future<AuthUser> reloadUser() async {
+    if (_user == null) {
+      throw const AuthException('No user signed in to the fake repository.');
+    }
+    _user = _user!.copyWith(isEmailVerified: isEmailVerified);
     _controller.add(_user);
     return _user!;
   }

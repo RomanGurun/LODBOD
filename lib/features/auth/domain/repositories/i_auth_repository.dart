@@ -14,6 +14,13 @@ abstract class IAuthRepository {
     required String displayName,
   });
 
+  /// Sends a verification email link to the current authenticated user.
+  Future<void> sendEmailVerification();
+
+  /// Refreshes the current authenticated user's state (e.g. checking if email
+  /// verification link was clicked).
+  Future<AuthUser> reloadUser();
+
   Future<void> sendPasswordResetEmail(String email);
 
   /// Asks Firebase to send an SMS OTP to [phoneNumber] (E.164, e.g.

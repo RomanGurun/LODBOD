@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/core/theme/tokens.dart';
 import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
 import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
@@ -16,6 +17,7 @@ import 'package:lodbod/features/auth/presentation/screens/otp_verification_scree
 import 'package:lodbod/features/auth/presentation/screens/profile_completion_screen.dart';
 import 'package:lodbod/features/auth/presentation/screens/registration_screen.dart';
 import 'package:lodbod/features/auth/presentation/screens/splash_screen.dart';
+import 'package:lodbod/features/auth/presentation/screens/verify_email_screen.dart';
 import 'package:lodbod/features/create_shipment/presentation/screens/create_shipment_screen.dart';
 import 'package:lodbod/features/create_shipment/presentation/screens/order_placed_screen.dart';
 import 'package:lodbod/features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -31,6 +33,7 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String otp = '/otp';
+  static const String verifyEmail = '/verify-email';
   static const String completeProfile = '/complete-profile';
   static const String home = '/home';
   static const String shipments = '/shipments';
@@ -82,8 +85,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       final onLogin = location == AppRoutes.login;
       final onRegister = location == AppRoutes.register;
       final onOtp = location == AppRoutes.otp;
+      final onVerifyEmail = location == AppRoutes.verifyEmail;
       final onCompleteProfile = location == AppRoutes.completeProfile;
-      final onAuthFlow = onSplash || onLogin || onRegister || onOtp;
+      final onAuthFlow =
+          onSplash || onLogin || onRegister || onOtp || onVerifyEmail;
 
       if (splashGate.value) {
         return onSplash ? null : AppRoutes.splash;
@@ -101,6 +106,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         // Allow the registration and OTP screens while logged out.
         if (onLogin || onRegister || onOtp) return null;
         return AppRoutes.login;
+      }
+
+      // Check email verification for email-registered accounts. Phone
+      // accounts and demo accounts bypass this check.
+      final isDemo = user.email.trim().toLowerCase() == AppStrings.demoEmail;
+      final needsEmailVerification =
+          !user.isPhoneAccount && !isDemo && !user.isEmailVerified;
+
+      if (needsEmailVerification) {
+        return onVerifyEmail ? null : AppRoutes.verifyEmail;
+      }
+
+      if (onVerifyEmail) {
+        return onCompleteProfile ? null : AppRoutes.completeProfile;
       }
 
       final profile = ref.read(userProfileProvider);
@@ -149,6 +168,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.otp,
         name: 'otp',
         builder: (context, state) => const OtpVerificationScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.verifyEmail,
+        name: 'verifyEmail',
+        builder: (context, state) => const VerifyEmailScreen(),
       ),
       GoRoute(
         path: AppRoutes.completeProfile,

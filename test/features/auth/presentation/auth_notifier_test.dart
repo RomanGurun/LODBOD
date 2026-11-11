@@ -139,6 +139,24 @@ void main() {
     expect(state.error.toString(), contains('6'));
   });
 
+  test('signUp surfaces duplicate email as an error', () async {
+    final repository = MockAuthRepository(latency: Duration.zero);
+    addTearDown(repository.dispose);
+    final container = containerWith(repository);
+    await container.read(authNotifierProvider.future);
+
+    await container.read(authNotifierProvider.notifier).signUp(
+          email: 'demo@lodbod.com',
+          password: 'Shipper123',
+          displayName: 'Aarav Shrestha',
+        );
+
+    final state = container.read(authNotifierProvider);
+    expect(state.hasError, isTrue);
+    expect(state.error, isA<AuthException>());
+    expect(state.error.toString(), contains('already exists'));
+  });
+
   test('signOut clears the current user', () async {
     final repository = MockAuthRepository(latency: Duration.zero);
     addTearDown(repository.dispose);

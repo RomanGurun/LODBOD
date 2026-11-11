@@ -162,6 +162,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       showLogo: false,
       showBack: false,
       children: [
+        const SizedBox(height: 12),
         Form(
           key: _formKey,
           child: LayoutBuilder(
@@ -243,9 +244,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                             ),
                           ),
                           onChanged: (value) => _onDigitChanged(index, value),
-                          onFieldSubmitted: (_) {
-                            if (!state.isVerifying) _verify();
-                          },
+                          onFieldSubmitted: (_) =>
+                              FocusScope.of(context).unfocus(),
                         ),
                       );
                     }),
@@ -306,19 +306,23 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
             ),
           ),
         ],
-        const SizedBox(height: AppSizes.lg),
-        FilledButton(
-          onPressed: state.isVerifying ? null : _verify,
-          child: state.isVerifying
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.textOnPrimary,
-                  ),
-                )
-              : const Text(AppStrings.verifyOtp),
+        const SizedBox(height: 36),
+        SizedBox(
+          width: double.infinity,
+          height: AppSizes.buttonHeight,
+          child: FilledButton(
+            onPressed: state.isVerifying ? null : _verify,
+            child: state.isVerifying
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.textOnPrimary,
+                    ),
+                  )
+                : const Text(AppStrings.verifyOtp),
+          ),
         ),
       ],
     );

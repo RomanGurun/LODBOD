@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:lodbod/core/errors/app_exception.dart';
 import 'package:lodbod/core/routing/app_router.dart';
 import 'package:lodbod/core/theme/tokens.dart';
 import 'package:lodbod/core/utils/phone_number.dart';
 import 'package:lodbod/core/utils/validators.dart';
 import 'package:lodbod/shared/widgets/app_text_field.dart';
+import 'package:lodbod/features/auth/domain/entities/auth_user.dart';
 import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
 
 /// Registration screen — creates the email/password account first and saves the
@@ -43,17 +45,45 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     super.dispose();
   }
 
+  String _formatErrorMessage(Object? error) {
+    if (error == null) return 'Registration failed. Please try again.';
+    if (error is AppException) return error.message;
+    final s = error.toString();
+    if (s.startsWith('Exception: ')) return s.substring(11);
+    return s;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
 
     await ref.read(authNotifierProvider.notifier).signUp(
-          email: _emailController.text.trim(),
+          email: _emailController.text.trim().toLowerCase(),
           password: _passwordController.text,
           displayName: _nameController.text.trim(),
           phone: PhoneNumber.toE164(_phoneController.text),
         );
-    // The router moves on as soon as auth and the profile are ready.
+
+    if (!mounted) return;
+    final authState = ref.read(authNotifierProvider);
+    if (!authState.hasError) {
+      await ref.read(authNotifierProvider.notifier).signOut();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully! Please log in.'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(AppRoutes.login);
+      }
+    }
   }
 
   void _goToLogin() {
@@ -66,10 +96,29 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<AuthUser?>>(
+      authNotifierProvider,
+      (previous, next) {
+        if (next.hasError && !next.isLoading) {
+          final message = _formatErrorMessage(next.error);
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(message),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+        }
+      },
+    );
+
     final textTheme = Theme.of(context).textTheme;
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState.isLoading;
-    final error = authState.hasError ? authState.error.toString() : null;
+    final error =
+        authState.hasError ? _formatErrorMessage(authState.error) : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -129,12 +178,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     const SizedBox(height: 20),
                     AppTextField(
                       controller: _emailController,
-                      label: 'Email address',
-                      hint: 'you@company.com',
+                      label: 'Gmail address',
+                      hint: 'you@gmail.com',
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.email],
-                      validator: Validators.email,
+                      validator: Validators.gmail,
                     ),
                     const SizedBox(height: 20),
                     AppTextField(

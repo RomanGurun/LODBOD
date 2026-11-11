@@ -56,65 +56,56 @@ class _SplashScreenState extends State<SplashScreen>
               child: SizedBox(
                 width: contentWidth,
                 height: constraints.maxHeight,
-                child: Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment.center,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.screenHorizontal,
-                        ),
-                        child: FadeTransition(
-                          opacity: _fade,
-                          child: ScaleTransition(
-                            scale: _scale,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const _SplashLogo(),
-                                const SizedBox(height: AppSizes.xl),
-                                Text(
-                                  AppStrings.appName,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontFamily: AppTypography.fontFamily,
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.2,
-                                    color: AppColors.textTitle,
-                                  ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSizes.screenHorizontal,
+                  ),
+                  child: Column(
+                    children: [
+                      const Spacer(flex: 3),
+                      FadeTransition(
+                        opacity: _fade,
+                        child: ScaleTransition(
+                          scale: _scale,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const _SplashLogo(),
+                              const SizedBox(height: 24),
+                              Text(
+                                AppStrings.appName,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.5,
+                                  color: AppColors.textTitle,
                                 ),
-                                const SizedBox(height: AppSizes.sm),
-                                const Text(
-                                  'SHIPPER',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontFamily: AppTypography.fontFamily,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 3.2,
-                                    color: AppColors.textSecondary,
-                                  ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'SHIPPER',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: AppTypography.fontFamily,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 3.5,
+                                  color: AppColors.textSecondary,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSizes.screenHorizontal,
-                          0,
-                          AppSizes.screenHorizontal,
-                          AppSizes.xl,
-                        ),
+                      const Spacer(flex: 4),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 28),
                         child: _SplashFooter(fade: _fade),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );

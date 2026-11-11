@@ -13,11 +13,16 @@ class MockAuthRepository implements IAuthRepository {
     id: 'demo-1',
     email: AppStrings.demoEmail,
     displayName: 'Aarav Shrestha',
+    isEmailVerified: true,
   );
 
   final Duration latency;
   final StreamController<AuthUser?> _controller =
       StreamController<AuthUser?>.broadcast();
+  final Set<String> _registeredEmails = <String>{AppStrings.demoEmail};
+
+  /// Allows tests or mock flows to toggle email verified state.
+  bool mockEmailVerified = false;
 
   AuthUser? _currentUser;
 
@@ -62,15 +67,36 @@ class MockAuthRepository implements IAuthRepository {
     if (password.length < 6) {
       throw const AuthException(AppStrings.passwordTooShort);
     }
+    if (_registeredEmails.contains(normalized)) {
+      throw const AuthException('An account with this email already exists.');
+    }
 
     final user = AuthUser(
       id: 'user-${DateTime.now().millisecondsSinceEpoch}',
       email: normalized,
       displayName: displayName.trim().isEmpty ? 'Shipper' : displayName.trim(),
+      isEmailVerified: mockEmailVerified,
     );
+    _registeredEmails.add(normalized);
     _currentUser = user;
     _controller.add(_currentUser);
     return user;
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    await Future<void>.delayed(latency);
+  }
+
+  @override
+  Future<AuthUser> reloadUser() async {
+    await Future<void>.delayed(latency);
+    if (_currentUser == null) {
+      throw const AuthException('No user is currently signed in.');
+    }
+    _currentUser = _currentUser!.copyWith(isEmailVerified: mockEmailVerified);
+    _controller.add(_currentUser);
+    return _currentUser!;
   }
 
   @override

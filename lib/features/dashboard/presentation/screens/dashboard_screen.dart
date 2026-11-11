@@ -59,13 +59,6 @@ class _DashboardContent extends ConsumerWidget {
     final name =
         profileName.isNotEmpty ? profileName : (user?.displayName ?? '');
 
-    if (stats.total == 0) {
-      return const EmptyState(
-        title: AppStrings.noShipmentsFound,
-        subtitle: AppStrings.noShipmentsSubtitle,
-      );
-    }
-
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: () => ref.read(shipmentNotifierProvider.notifier).refresh(),
@@ -177,12 +170,52 @@ class _DashboardContent extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 15),
-          for (final shipment in recent) ...<Widget>[
-            ShipmentCard(
-              shipment: shipment,
-              onTap: () => context.go(AppRoutes.shipmentDetail(shipment.id)),
+          if (recent.isEmpty) ...<Widget>[
+            Container(
+              padding: const EdgeInsets.symmetric(
+                vertical: 24,
+                horizontal: 16,
+              ),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.inventory_2_outlined,
+                    size: 36,
+                    color: AppColors.textTertiary,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'No shipments yet',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Post a load to start shipping with LODBOD',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textTertiary,
+                        ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
+          ] else ...<Widget>[
+            for (final shipment in recent) ...<Widget>[
+              ShipmentCard(
+                shipment: shipment,
+                onTap: () => context.go(AppRoutes.shipmentDetail(shipment.id)),
+              ),
+              const SizedBox(height: 12),
+            ],
           ],
           if (nextPickup != null) ...<Widget>[
             const SizedBox(height: 9),
