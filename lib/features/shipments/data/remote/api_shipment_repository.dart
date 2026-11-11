@@ -420,26 +420,23 @@ class ApiShipmentRepository implements IShipmentRepository {
   }
 
   Future<List<BidModel>> _fetchBidModels(String shipmentId) async {
-    final response = await _getBids(
-      <String, dynamic>{'shipmentId': shipmentId},
-    );
-    return _bidModels(response.data);
+    // MockAPI has no reliable server-side filtering: a filtered read that
+    // matches zero rows answers 404 instead of an empty list. Fetch the
+    // collection once and filter client-side, like the shipment list does.
+    final response = await _getBids();
+    return _bidModels(response.data)
+        .where((bid) => bid.shipmentId == shipmentId)
+        .toList();
   }
 
-  /// Reads the bid collection. MockAPI answers collection reads that match
-  /// zero rows — an entirely empty bid collection, or a filtered read such
-  /// as `?shipmentId=x` for a shipment that has no bids yet — with 404
-  /// instead of an empty list, so "no bids" arrives looking like a missing
-  /// resource. That quirk is translated back into an empty result here; any
-  /// other error keeps propagating to the caller's error mapping.
-  Future<Response<dynamic>> _getBids([
-    Map<String, dynamic>? queryParameters,
-  ]) async {
+  /// Reads the whole bid collection. MockAPI answers collection reads that
+  /// match zero rows — an empty bid collection, or a filtered read such as
+  /// `?shipmentId=x` — with 404 instead of an empty list, so a 404 is
+  /// translated back into an empty result here; any other error keeps
+  /// propagating to the caller's error mapping.
+  Future<Response<dynamic>> _getBids() async {
     try {
-      return await _dio.get<dynamic>(
-        '/bids',
-        queryParameters: queryParameters,
-      );
+      return await _dio.get<dynamic>('/bids');
     } on DioException catch (error) {
       final matchedNoRows = error.type == DioExceptionType.badResponse &&
           error.response?.statusCode == 404;

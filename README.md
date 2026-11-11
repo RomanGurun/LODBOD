@@ -92,13 +92,15 @@ The base URL defaults to the hosted project and can be overridden with
 
 ### MockAPI quirk: zero-match reads answer 404
 
-MockAPI answers a collection read that matches zero rows — a filtered query
-such as `GET /bids?shipmentId=x` for a shipment that has no bids yet — with
-**404 instead of an empty list** (verified against the live service). Left
-unhandled, every freshly posted load would fail its first bid fetch with a
-missing-resource error. `ApiShipmentRepository` therefore translates 404 on
-`/bids` collection reads back into an empty list, while single-resource reads
-such as `GET /shipments/{id}` still surface 404 as a real `NotFoundException`.
+MockAPI answers a collection read that matches zero rows — an empty bid
+collection, or a filtered query such as `GET /bids?shipmentId=x` for a
+shipment that has no bids yet — with **404 instead of an empty list**
+(verified against the live service). The app therefore never relies on
+filtered reads: bids are fetched once and filtered client-side, exactly like
+the shipment list (MockAPI has no server-side filtering anyway). As a safety
+net, `ApiShipmentRepository` also treats 404 on a `/bids` collection read as
+"no bids", while single-resource reads such as `GET /shipments/{id}` still
+surface 404 as a real `NotFoundException`.
 
 ### Fallback semantics (honesty about every layer)
 

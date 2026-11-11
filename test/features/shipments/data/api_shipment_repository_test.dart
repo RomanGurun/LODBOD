@@ -283,10 +283,8 @@ void main() {
         return _json(shipments.firstWhere((row) => row['id'] == '2'));
       }
       if (path == '/bids' && options.method == 'GET') {
-        final shipmentId = options.queryParameters['shipmentId'];
-        return _json(
-          bids.where((bid) => bid['shipmentId'] == shipmentId).toList(),
-        );
+        // The repository fetches the collection and filters client-side.
+        return _json(bids);
       }
       if (path == '/shipments/2' && options.method == 'PATCH') {
         final body = Map<String, dynamic>.from(options.data as Map);
@@ -337,10 +335,8 @@ void main() {
         return _json(shipments.firstWhere((row) => row['id'] == '2'));
       }
       if (path == '/bids' && options.method == 'GET') {
-        final shipmentId = options.queryParameters['shipmentId'];
-        return _json(
-          bids.where((bid) => bid['shipmentId'] == shipmentId).toList(),
-        );
+        // The repository fetches the collection and filters client-side.
+        return _json(bids);
       }
       if (path == '/shipments/2' && options.method == 'PATCH') {
         final body = Map<String, dynamic>.from(options.data as Map);
@@ -401,9 +397,9 @@ void main() {
     );
   });
 
-  test('treats a 404 on a zero-match bids query as no bids', () async {
-    // MockAPI answers filtered collection reads that match zero rows with
-    // 404 instead of an empty list, so a shipment without bids arrives
+  test('treats a 404 on the bids collection as no bids', () async {
+    // MockAPI answers collection reads that match zero rows with 404
+    // instead of an empty list, so a bid collection with no rows arrives
     // looking like a missing resource.
     final repo = _repository((options) {
       if (options.path == '/bids' && options.method == 'GET') {
