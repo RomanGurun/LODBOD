@@ -48,3 +48,4 @@ app.*.map.json
 /android/build/
 /firebase-debug.log
 /.firebase/
+android/.kotlin/

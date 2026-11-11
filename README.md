@@ -203,16 +203,50 @@ the prototype — nothing is decorative.
 
 ## Architecture
 
+Feature-first, with presentation / domain / data separation inside each
+feature. A feature's domain layer holds its entities, repository contracts
+and business rules (pure Dart, no Flutter imports); its data layer holds
+DTOs, the MockAPI/Firebase/mock implementations and resilient wrappers;
+its presentation layer holds screens, feature widgets and Riverpod
+providers. `core/` holds app-level concerns (theme, routing, DI
+composition root, network interceptors, the app shell); `shared/` holds
+only Flutter-level building blocks (design-system widgets, extensions).
+
 ```
 lib/
-├── core/       constants, theme, router, errors, extensions, validators
-├── domain/     entities, enums, repository interfaces, business rules
-├── data/       DTO models, seed data, mock/remote/resilient repositories
-├── features/   auth, dashboard, shipments, bids, create, analytics,
-│               tracking, account
-└── shared/     provider wiring, reusable widgets (badges, states,
-                skeletons, timeline)
+├── main.dart
+├── core/
+│   ├── constants/    copy strings
+│   ├── di/           repository providers (composition root)
+│   ├── errors/       AppException hierarchy
+│   ├── network/      data-source status + dio interceptors
+│   ├── routing/      go_router config, routes, auth redirect
+│   ├── theme/        tokens + Material theme
+│   ├── utils/        validators
+│   └── widgets/       app shell, bottom nav, offline banner
+├── features/
+│   ├── auth/               data + domain + presentation
+│   ├── shipments/         the shipment aggregate (bids included):
+│   │                      entities, rules, DTOs, api/mock/resilient
+│   │                      repositories, notifier, screens, widgets
+│   ├── bids/              presentation (bid card, details sheet)
+│   ├── create_shipment/    presentation (5-step form, confirmation)
+│   ├── dashboard/          domain (stats) + presentation
+│   ├── analytics/          presentation (chart + providers)
+│   └── account/            presentation
+└── shared/          extensions + design-system widgets
 ```
+
+Dependency rules (enforced by convention, verified by the import graph):
+domain depends only on `core`; data depends on its own domain + `core`;
+presentation depends on its own domain plus other features' **public**
+providers/widgets; `core/di` and `core/routing` are the only places
+allowed to know every feature's internals (composition root and route
+builders). Bids belong to the shipment aggregate — they cannot exist
+without a shipment, the MockAPI nests them under shipments, and bid
+acceptance is one atomic-ish multi-document write — so the `bids`
+feature is presentation-focused by design, avoiding bidirectional
+feature coupling.
 
 - **State: Riverpod 2 (no codegen).** Chosen deliberately: the ODT allows any
   justified state management. This app's state is one shared async list with
@@ -224,19 +258,21 @@ lib/
 - **Navigation:** `go_router` with an auth redirect, stateful shell route, a
   `/shipments?filter=…` deep link used by dashboard stat cards, and a
   `/shipments/:id/tracking` route.
-- **Data:** repository interfaces injected through
-  `lib/shared/providers/repository_providers.dart`; screens never import
-  concrete repositories. Dio interceptors add retry, safe logging, and
-  data-source tracking (offline banner).
+- **Data:** repository contracts are injected through
+  `lib/core/di/repository_providers.dart`; screens never import concrete
+  repositories. Dio interceptors add retry, safe logging, and data-source
+  tracking (offline banner).
 - **Writes:** only `ShipmentNotifier` writes shipment state; `createShipment`
   and `acceptBid` return the repository result and update state from it — no
-  optimistic updates.
+  optimistic updates. Every screen (dashboard, list, detail, tracking,
+  analytics) watches the same provider, so a created shipment or accepted bid
+  propagates everywhere in one rebuild.
 
 ## Testing
 
 ```bash
 flutter analyze   # 0 issues
-flutter test      # 79 tests, all passing
+flutter test      # 80 tests, all passing
 ```
 
 Covered: shipment validation and the 3-limit rule, ownership rule (including

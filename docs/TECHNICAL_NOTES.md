@@ -208,7 +208,7 @@ When a shipment is created or a bid is accepted, one notifier update propagates 
 ### Repository Interface (Abstract Contract)
 
 ```dart
-// lib/domain/repositories/i_shipment_repository.dart
+// lib/features/shipments/domain/repositories/i_shipment_repository.dart
 abstract class IShipmentRepository {
   Future<List<Shipment>> getShipments();
   Future<Shipment> getShipmentById(String id);
@@ -224,7 +224,7 @@ It only depends on `IShipmentRepository` — injected via Riverpod.
 ### Dependency Injection via Riverpod
 
 ```dart
-// lib/shared/providers/repository_providers.dart
+// lib/core/di/repository_providers.dart
 
 // Switch this ONE line to go from mock → production
 final shipmentRepoProvider = Provider<IShipmentRepository>(
@@ -240,7 +240,7 @@ final shipmentRepoProvider = Provider<IShipmentRepository>(
 Implemented as a **pure Dart class** in the domain layer — no Flutter, fully testable.
 
 ```dart
-// lib/domain/usecases/shipment_limit_rule.dart
+// lib/features/shipments/domain/rules/shipment_limit_rule.dart
 
 class ShipmentLimitRule {
   static const int mobileLimit = 3;
