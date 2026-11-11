@@ -119,30 +119,31 @@ class _CreateShipmentScreenState extends ConsumerState<CreateShipmentScreen> {
               ],
               Expanded(
                 flex: _step > 0 ? 1 : 2,
-                child: FilledButton(
-                  onPressed: _submitting ? null : _next,
-                  child: _submitting
-                      ? const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: AppSizes.iconSm,
-                              height: AppSizes.iconSm,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.textOnPrimary,
-                              ),
-                            ),
-                            SizedBox(width: AppSizes.sm),
-                            Text(AppStrings.submitting),
-                          ],
-                        )
-                      : Text(
+                // FilledButton.icon (rather than a hand-built Row) wraps
+                // the label in a Flexible, so "Submitting..." can shrink
+                // inside the tight button width on narrow screens instead
+                // of overflowing.
+                child: _submitting
+                    ? FilledButton.icon(
+                        onPressed: null,
+                        icon: const SizedBox(
+                          width: AppSizes.iconSm,
+                          height: AppSizes.iconSm,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.textOnPrimary,
+                          ),
+                        ),
+                        label: const Text(AppStrings.submitting),
+                      )
+                    : FilledButton(
+                        onPressed: _next,
+                        child: Text(
                           _step == _stepCount - 1
                               ? AppStrings.submit
                               : AppStrings.next,
                         ),
-                ),
+                      ),
               ),
             ],
           ),

@@ -146,6 +146,29 @@ void main() {
     expect(find.textContaining('LOD-1005'), findsWidgets);
   });
 
+  testWidgets('the submitting state fits on a narrow phone', (tester) async {
+    // Regression guard: on a ~360dp-wide device the back/next buttons share
+    // the bottom bar, so the "Submitting..." row must shrink to fit inside
+    // its half-width button instead of overflowing it.
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await pumpForm(tester);
+    await fillToReview(tester);
+
+    await tester.tap(find.text(AppStrings.submit));
+    await tester.pump();
+
+    // The spinner label must fit inside the button — no RenderFlex overflow.
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpAndSettle();
+    expect(find.text('Order placed'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('blocks the first step until required fields are filled',
       (tester) async {
     await pumpForm(tester);
