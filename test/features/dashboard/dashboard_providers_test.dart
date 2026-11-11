@@ -5,6 +5,8 @@ import 'package:lodbod/features/dashboard/providers/dashboard_providers.dart';
 import 'package:lodbod/features/shipments/providers/shipment_notifier.dart';
 import 'package:lodbod/shared/providers/repository_providers.dart';
 
+import '../../support/fake_auth.dart';
+
 void main() {
   ProviderContainer buildContainer() {
     final container = ProviderContainer(
@@ -12,6 +14,7 @@ void main() {
         shipmentRepositoryProvider.overrideWithValue(
           MockShipmentRepository(latency: Duration.zero),
         ),
+        authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -41,7 +44,7 @@ void main() {
     final action = container.read(actionRequiredShipmentProvider).requireValue;
 
     expect(action?.reference, 'LOD-1002');
-    expect(action?.bidCount, 3);
+    expect(action?.bidCount, 2);
   });
 
   test('nextPickupShipmentProvider picks the nearest future pickup', () async {

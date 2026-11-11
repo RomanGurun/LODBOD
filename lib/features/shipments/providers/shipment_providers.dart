@@ -9,18 +9,27 @@ class ShipmentFilter {
   final String query;
   final ShipmentStatus? status;
 
-  const ShipmentFilter({this.query = '', this.status});
+  /// When set, only shipments that count towards the active-request limit
+  /// (open / awaiting bids / scheduled / confirmed / in transit) are shown.
+  final bool activeOnly;
+
+  const ShipmentFilter({
+    this.query = '',
+    this.status,
+    this.activeOnly = false,
+  });
 
   List<Shipment> apply(List<Shipment> shipments) {
     final normalized = query.trim().toLowerCase();
     return shipments.where((shipment) {
       final matchesStatus = status == null || shipment.status == status;
+      final matchesActive = !activeOnly || shipment.status.countsTowardsLimit;
       final matchesQuery = normalized.isEmpty ||
           shipment.reference.toLowerCase().contains(normalized) ||
           shipment.pickupCity.toLowerCase().contains(normalized) ||
           shipment.destinationCity.toLowerCase().contains(normalized) ||
           shipment.routeLabel.toLowerCase().contains(normalized);
-      return matchesStatus && matchesQuery;
+      return matchesStatus && matchesActive && matchesQuery;
     }).toList();
   }
 
@@ -30,11 +39,12 @@ class ShipmentFilter {
         other is ShipmentFilter &&
             runtimeType == other.runtimeType &&
             query == other.query &&
-            status == other.status;
+            status == other.status &&
+            activeOnly == other.activeOnly;
   }
 
   @override
-  int get hashCode => Object.hash(query, status);
+  int get hashCode => Object.hash(query, status, activeOnly);
 }
 
 class DashboardStats {
@@ -116,4 +126,32 @@ final shipmentBidsProvider =
   return ref
       .watch(shipmentByIdProvider(shipmentId))
       .whenData((shipment) => shipment?.bids ?? const <Bid>[]);
+});
+
+/// Shipments created per month over the last [months] months, oldest first.
+/// Used by the analytics chart; derived from real repository data.
+final monthlyShipmentCountsProvider =
+    Provider.family<AsyncValue<List<(DateTime, int)>>, int>((ref, months) {
+  return ref.watch(shipmentNotifierProvider).whenData((shipments) {
+    final now = DateTime.now();
+    // Month buckets keyed by first day of month, oldest first.
+    final buckets = <DateTime, int>{
+      for (var i = months - 1; i >= 0; i--)
+        DateTime(now.year, now.month - i): 0,
+    };
+
+    for (final shipment in shipments) {
+      final key = DateTime(
+        shipment.createdAt.year,
+        shipment.createdAt.month,
+      );
+      if (buckets.containsKey(key)) {
+        buckets[key] = (buckets[key] ?? 0) + 1;
+      }
+    }
+
+    return buckets.entries
+        .map((entry) => (entry.key, entry.value))
+        .toList(growable: false);
+  });
 });

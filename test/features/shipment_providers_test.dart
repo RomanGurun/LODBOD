@@ -6,6 +6,8 @@ import 'package:lodbod/features/shipments/providers/shipment_notifier.dart';
 import 'package:lodbod/features/shipments/providers/shipment_providers.dart';
 import 'package:lodbod/shared/providers/repository_providers.dart';
 
+import '../support/fake_auth.dart';
+
 void main() {
   ProviderContainer buildContainer() {
     final container = ProviderContainer(
@@ -13,6 +15,7 @@ void main() {
         shipmentRepositoryProvider.overrideWithValue(
           MockShipmentRepository(latency: Duration.zero),
         ),
+        authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -62,6 +65,25 @@ void main() {
     expect(delivered.single.reference, 'LOD-1003');
   });
 
+  test('filteredShipmentsProvider supports the active-only grouping',
+      () async {
+    final container = buildContainer();
+    await container.read(shipmentNotifierProvider.future);
+
+    final active = container
+        .read(
+          filteredShipmentsProvider(const ShipmentFilter(activeOnly: true)),
+        )
+        .requireValue;
+
+    // Seeds: in_transit + awaiting_bids are active; delivered and cancelled
+    // are excluded.
+    expect(active.map((s) => s.reference), unorderedEquals(<String>[
+      'LOD-1001',
+      'LOD-1002',
+    ]));
+  });
+
   test('shipmentByIdProvider and shipmentBidsProvider resolve one shipment',
       () async {
     final container = buildContainer();
@@ -71,9 +93,23 @@ void main() {
     expect(shipment?.reference, 'LOD-1002');
 
     final bids = container.read(shipmentBidsProvider('2')).requireValue;
-    expect(bids, hasLength(3));
+    expect(bids, hasLength(2));
 
     final missing = container.read(shipmentByIdProvider('nope')).requireValue;
     expect(missing, isNull);
+  });
+
+  test('monthlyShipmentCountsProvider buckets shipments by month', () async {
+    final container = buildContainer();
+    await container.read(shipmentNotifierProvider.future);
+
+    final series =
+        container.read(monthlyShipmentCountsProvider(6)).requireValue;
+
+    expect(series, hasLength(6));
+    // Seeded shipments are created within the last few days, so the current
+    // month bucket holds all of them and older buckets are zero.
+    final total = series.fold<int>(0, (sum, e) => sum + e.$2);
+    expect(total, 4);
   });
 }

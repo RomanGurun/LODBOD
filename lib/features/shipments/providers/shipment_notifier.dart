@@ -1,18 +1,35 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/app_exception.dart';
+import '../../../domain/entities/auth_user.dart';
 import '../../../domain/entities/create_shipment_draft.dart';
 import '../../../domain/entities/shipment.dart';
 import '../../../domain/rules/shipment_limit_rule.dart';
+import '../../../domain/rules/shipment_ownership.dart';
+import '../../auth/providers/auth_notifier.dart';
 import '../../../shared/providers/repository_providers.dart';
 
+/// Single source of truth for the signed-in shipper's shipments.
+///
+/// The list is scoped by ownership: it watches the auth state, so a new
+/// sign-in rebuilds it for that user and signing out clears it — no
+/// user-specific data survives a logout.
 class ShipmentNotifier extends AsyncNotifier<List<Shipment>> {
   bool _isCreating = false;
   bool _acceptInProgress = false;
 
   @override
-  Future<List<Shipment>> build() {
-    return ref.watch(shipmentRepositoryProvider).getShipments();
+  Future<List<Shipment>> build() async {
+    // Awaiting the auth future (rather than reading the possibly-loading
+    // state) keeps this provider's own load from racing the auth provider's
+    // initial load — a mid-load auth transition would otherwise cancel the
+    // in-flight shipment fetch.
+    final user = await ref.watch(authNotifierProvider.future);
+    if (user == null) return const <Shipment>[];
+
+    final shipments =
+        await ref.watch(shipmentRepositoryProvider).getShipments();
+    return ShipmentOwnership.ownedBy(shipments, user.id);
   }
 
   Future<Shipment> createShipment(CreateShipmentDraft draft) async {
@@ -23,13 +40,19 @@ class ShipmentNotifier extends AsyncNotifier<List<Shipment>> {
     if (current == null) {
       throw const ValidationException('Shipments are still loading.');
     }
+    final user = ref.read(authNotifierProvider).valueOrNull;
+    if (user == null) {
+      throw const AuthException('Your session expired. Please sign in again.');
+    }
 
+    // The limit counts only this shipper's qualifying shipments.
     ShipmentLimitRule.ensureCanCreate(current);
 
     _isCreating = true;
     try {
+      final owned = draft.ownedBy(uid: user.id, name: _shipperName(user));
       final created =
-          await ref.read(shipmentRepositoryProvider).createShipment(draft);
+          await ref.read(shipmentRepositoryProvider).createShipment(owned);
       state = AsyncData<List<Shipment>>(<Shipment>[created, ...current]);
       return created;
     } finally {
@@ -52,6 +75,15 @@ class ShipmentNotifier extends AsyncNotifier<List<Shipment>> {
     final index = current.indexWhere((shipment) => shipment.id == shipmentId);
     if (index == -1) throw const NotFoundException();
 
+    // Only the owning shipper may accept bids on a shipment.
+    final user = ref.read(authNotifierProvider).valueOrNull;
+    if (user == null ||
+        !ShipmentOwnership.isOwnedBy(current[index], user.id)) {
+      throw const ForbiddenException(
+        'You can only accept bids on your own shipments.',
+      );
+    }
+
     _acceptInProgress = true;
     try {
       final updated = await ref.read(shipmentRepositoryProvider).acceptBid(
@@ -67,10 +99,22 @@ class ShipmentNotifier extends AsyncNotifier<List<Shipment>> {
   }
 
   Future<void> refresh() async {
+    final user = ref.read(authNotifierProvider).valueOrNull;
+    if (user == null) {
+      state = const AsyncData<List<Shipment>>(<Shipment>[]);
+      return;
+    }
     state = const AsyncLoading<List<Shipment>>();
-    state = await AsyncValue.guard<List<Shipment>>(
-      () => ref.read(shipmentRepositoryProvider).getShipments(),
-    );
+    state = await AsyncValue.guard<List<Shipment>>(() async {
+      final shipments =
+          await ref.read(shipmentRepositoryProvider).getShipments();
+      return ShipmentOwnership.ownedBy(shipments, user.id);
+    });
+  }
+
+  String _shipperName(AuthUser user) {
+    final name = user.displayName.trim();
+    return name.isEmpty ? 'Demo Shipper' : name;
   }
 }
 
