@@ -126,15 +126,6 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     }
   }
 
-  void _changeNumber() {
-    ref.read(phoneAuthControllerProvider.notifier).clear();
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go(AppRoutes.login);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(phoneAuthControllerProvider);
@@ -145,12 +136,18 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         title: AppStrings.otpTitle,
         subtitle: AppStrings.codeExpired,
         showLogo: false,
-        showBack: true,
-        onBack: _changeNumber,
+        showBack: false,
         children: [
           FilledButton(
-            onPressed: _changeNumber,
-            child: const Text(AppStrings.changePhoneNumber),
+            onPressed: () {
+              ref.read(phoneAuthControllerProvider.notifier).clear();
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.login);
+              }
+            },
+            child: const Text('Back to Sign In'),
           ),
         ],
       );
@@ -163,8 +160,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       subtitle:
           '${AppStrings.otpSubtitle} ${PhoneNumber.mask(state.phoneNumber)}',
       showLogo: false,
-      showBack: true,
-      onBack: _changeNumber,
+      showBack: false,
       children: [
         Form(
           key: _formKey,
@@ -323,13 +319,6 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                   ),
                 )
               : const Text(AppStrings.verifyOtp),
-        ),
-        const SizedBox(height: AppSizes.sm),
-        Center(
-          child: TextButton(
-            onPressed: _changeNumber,
-            child: const Text(AppStrings.changePhoneNumber),
-          ),
         ),
       ],
     );

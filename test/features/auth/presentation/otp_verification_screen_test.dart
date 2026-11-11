@@ -144,17 +144,22 @@ void main() {
     await disposeScreen(tester);
   });
 
-  testWidgets('does not display a resend code button', (tester) async {
+  testWidgets(
+      'does not display back button, resend code, or change phone number',
+      (tester) async {
     await sendOtp();
     await pumpScreen(tester);
 
+    expect(find.byType(AppBar), findsNothing);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
     expect(find.text('Resend code'), findsNothing);
     expect(find.textContaining('Resend in'), findsNothing);
-    expect(find.text('Change phone number'), findsOneWidget);
+    expect(find.text('Change phone number'), findsNothing);
     await disposeScreen(tester);
   });
 
-  testWidgets('renders 6 responsive boxes on narrow 320px screens without overflow',
+  testWidgets(
+      'renders 6 responsive boxes on narrow 320px screens without overflow',
       (tester) async {
     tester.view.physicalSize = const Size(320 * 2.0, 640 * 2.0);
     tester.view.devicePixelRatio = 2.0;
@@ -171,8 +176,9 @@ void main() {
     await disposeScreen(tester);
   });
 
-  testWidgets('change number leaves the OTP screen', (tester) async {
-    await sendOtp();
+  testWidgets('expired session allows navigating back to sign in',
+      (tester) async {
+    await container.read(authNotifierProvider.future);
     final router = GoRouter(
       initialLocation: '/otp',
       routes: <RouteBase>[
@@ -197,11 +203,10 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.text('Change phone number'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Back to Sign In'));
     await tester.pumpAndSettle();
 
     expect(find.text('Login screen'), findsOneWidget);
-    expect(container.read(phoneAuthControllerProvider).phoneNumber, isEmpty);
   });
 
   testWidgets('asks for a new code when the verification expired',
@@ -214,7 +219,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.widgetWithText(FilledButton, 'Change phone number'),
+      find.widgetWithText(FilledButton, 'Back to Sign In'),
       findsOneWidget,
     );
     await disposeScreen(tester);
