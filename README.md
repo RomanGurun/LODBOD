@@ -90,6 +90,16 @@ The app is remote-first against the provided endpoint:
 The base URL defaults to the hosted project and can be overridden with
 `--dart-define=API_BASE_URL=https://…` without touching the repository code.
 
+### MockAPI quirk: zero-match reads answer 404
+
+MockAPI answers a collection read that matches zero rows — a filtered query
+such as `GET /bids?shipmentId=x` for a shipment that has no bids yet — with
+**404 instead of an empty list** (verified against the live service). Left
+unhandled, every freshly posted load would fail its first bid fetch with a
+missing-resource error. `ApiShipmentRepository` therefore translates 404 on
+`/bids` collection reads back into an empty list, while single-resource reads
+such as `GET /shipments/{id}` still surface 404 as a real `NotFoundException`.
+
 ### Fallback semantics (honesty about every layer)
 
 `ResilientShipmentRepository` wraps the API repository:
@@ -305,7 +315,7 @@ feature coupling.
 
 ```bash
 flutter analyze   # 0 issues
-flutter test      # 108 tests, all passing
+flutter test      # 114 tests, all passing
 ```
 
 Covered: shipment validation and the 3-limit rule, ownership rule (including

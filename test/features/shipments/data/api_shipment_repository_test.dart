@@ -401,6 +401,70 @@ void main() {
     );
   });
 
+  test('treats a 404 on a zero-match bids query as no bids', () async {
+    // MockAPI answers filtered collection reads that match zero rows with
+    // 404 instead of an empty list, so a shipment without bids arrives
+    // looking like a missing resource.
+    final repo = _repository((options) {
+      if (options.path == '/bids' && options.method == 'GET') {
+        return _json(
+          <String, dynamic>{'message': 'Not found'},
+          statusCode: 404,
+        );
+      }
+      throw StateError('Unexpected ${options.method} ${options.path}');
+    });
+
+    expect(await repo.getBids('5'), isEmpty);
+  });
+
+  test('returns a shipment with no bids when its bids query 404s', () async {
+    final repo = _repository((options) {
+      if (options.path == '/shipments/5' && options.method == 'GET') {
+        return _json(
+          _shipment(
+            id: '5',
+            reference: 'LOD-1005',
+            status: 'open',
+            createdAt: '2026-11-08T10:00:00.000Z',
+          ),
+        );
+      }
+      if (options.path == '/bids' && options.method == 'GET') {
+        return _json(
+          <String, dynamic>{'message': 'Not found'},
+          statusCode: 404,
+        );
+      }
+      throw StateError('Unexpected ${options.method} ${options.path}');
+    });
+
+    final shipment = await repo.getShipmentById('5');
+
+    expect(shipment.reference, 'LOD-1005');
+    expect(shipment.bids, isEmpty);
+  });
+
+  test('loads shipments when the bids collection read is a 404', () async {
+    final repo = _repository((options) {
+      if (options.path == '/shipments') {
+        return _json(_shipmentRows());
+      }
+      if (options.path == '/bids') {
+        return _json(
+          <String, dynamic>{'message': 'Not found'},
+          statusCode: 404,
+        );
+      }
+      throw StateError('Unexpected ${options.method} ${options.path}');
+    });
+
+    final all = await repo.getShipments();
+
+    expect(all, hasLength(4));
+    expect(all.every((shipment) => shipment.bids.isEmpty), isTrue);
+  });
+
   test(
       'simulates a carrier bid on an open load and flips it to awaiting '
       'bids', () async {
@@ -461,6 +525,60 @@ void main() {
     expect(updated.bidCount, 1);
     expect(updated.bids.single.status, BidStatus.pending);
     expect(updated.bids.single.id, '10');
+  });
+
+  test(
+      'simulates a carrier bid when the zero-bids query is answered with '
+      '404', () async {
+    // Reproduces the live MockAPI behaviour on freshly posted loads: the
+    // shipment exists, but /bids?shipmentId=x matches no rows yet and the
+    // service answers 404 instead of []. Simulating a bid must still work
+    // instead of failing with a missing-resource error.
+    var shipments = <Map<String, dynamic>>[
+      _shipment(
+        id: '5',
+        reference: 'LOD-1005',
+        status: 'open',
+        createdAt: '2026-11-08T10:00:00.000Z',
+      ),
+    ];
+    var bids = <Map<String, dynamic>>[];
+
+    final repo = _repository((options) {
+      final path = options.path;
+      if (path == '/shipments/5' && options.method == 'GET') {
+        return _json(shipments.first);
+      }
+      if (path == '/bids' && options.method == 'GET') {
+        return _json(
+          <String, dynamic>{'message': 'Not found'},
+          statusCode: 404,
+        );
+      }
+      if (path == '/bids' && options.method == 'POST') {
+        final body = Map<String, dynamic>.from(options.data as Map);
+        final created = <String, dynamic>{...body, 'id': '10'};
+        bids = <Map<String, dynamic>>[created];
+        return _json(created, statusCode: 201);
+      }
+      if (path == '/shipments/5' && options.method == 'PATCH') {
+        final body = Map<String, dynamic>.from(options.data as Map);
+        shipments = shipments
+            .map((row) => row['id'] == '5' ? {...row, ...body} : row)
+            .toList();
+        return _json(shipments.first);
+      }
+      throw StateError('Unexpected ${options.method} $path');
+    });
+
+    final updated = await repo.simulateCarrierBid('5');
+
+    // The bid really reached the server and the load flipped to awaiting
+    // bids so it can be accepted.
+    expect(bids, hasLength(1));
+    expect(bids.single['shipmentId'], '5');
+    expect(updated.status, ShipmentStatus.awaitingBids);
+    expect(updated.bidCount, 1);
   });
 
   test('simulating a bid on an awaiting-bids shipment needs no status patch',
@@ -615,6 +733,45 @@ void main() {
     expect(updated.status, ShipmentStatus.delivered);
     // Bids stay attached so the detail screen keeps showing the booking.
     expect(updated.bidCount, 1);
+  });
+
+  test('advances an in-transit shipment that has no bids yet', () async {
+    // In-transit loads without bid rows hit the same zero-match 404 when
+    // their bids are fetched; the status advance must still work.
+    var shipments = <Map<String, dynamic>>[
+      _shipment(
+        id: '1',
+        reference: 'LOD-1001',
+        status: 'in_transit',
+        createdAt: '2026-11-02T10:00:00.000Z',
+      ),
+    ];
+
+    final repo = _repository((options) {
+      final path = options.path;
+      if (path == '/shipments/1' && options.method == 'GET') {
+        return _json(shipments.first);
+      }
+      if (path == '/bids' && options.method == 'GET') {
+        return _json(
+          <String, dynamic>{'message': 'Not found'},
+          statusCode: 404,
+        );
+      }
+      if (path == '/shipments/1' && options.method == 'PATCH') {
+        final body = Map<String, dynamic>.from(options.data as Map);
+        shipments = shipments
+            .map((row) => row['id'] == '1' ? {...row, ...body} : row)
+            .toList();
+        return _json(shipments.first);
+      }
+      throw StateError('Unexpected ${options.method} $path');
+    });
+
+    final updated = await repo.advanceShipmentStatus('1');
+
+    expect(updated.status, ShipmentStatus.delivered);
+    expect(updated.bids, isEmpty);
   });
 
   test('advancing a delivered shipment is refused before any write', () async {
