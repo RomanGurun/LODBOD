@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
-import '../../../core/constants/app_strings.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
 
 /// Hero card greeting the shipper with the mobile request budget:
 /// title, caption, a usage bar and the "+ Post Load" call to action.

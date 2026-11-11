@@ -1,6 +1,6 @@
-import '../../core/constants/app_strings.dart';
-import '../../core/errors/app_exception.dart';
-import '../entities/create_shipment_draft.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/domain/entities/create_shipment_draft.dart';
 
 class ShipmentValidation {
   ShipmentValidation._();

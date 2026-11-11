@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 
-import '../../../core/network/data_source_status.dart';
+import 'package:lodbod/core/network/data_source_status.dart';
 
 class DataSourceInterceptor extends Interceptor {
   DataSourceInterceptor(this._status);

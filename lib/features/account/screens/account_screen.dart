@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_strings.dart';
-import '../../../core/errors/app_exception.dart';
-import '../../../core/extensions/date_ext.dart';
-import '../../../core/extensions/string_ext.dart';
-import '../../../core/theme/tokens.dart';
-import '../../../domain/entities/user_profile.dart';
-import '../../auth/providers/auth_notifier.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/core/extensions/date_ext.dart';
+import 'package:lodbod/core/extensions/string_ext.dart';
+import 'package:lodbod/core/theme/tokens.dart';
+import 'package:lodbod/domain/entities/user_profile.dart';
+import 'package:lodbod/features/auth/providers/auth_notifier.dart';
 
 class AccountScreen extends ConsumerStatefulWidget {
   const AccountScreen({super.key});

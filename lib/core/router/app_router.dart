@@ -2,22 +2,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../domain/entities/auth_user.dart';
-import '../../domain/entities/shipment.dart';
-import '../../features/account/screens/account_screen.dart';
-import '../../features/analytics/screens/analytics_screen.dart';
-import '../../features/auth/providers/auth_notifier.dart';
-import '../../features/auth/screens/login_screen.dart';
-import '../../features/auth/screens/otp_screen.dart';
-import '../../features/auth/screens/registration_screen.dart';
-import '../../features/auth/screens/splash_screen.dart';
-import '../../features/create/screens/create_shipment_screen.dart';
-import '../../features/create/screens/order_placed_screen.dart';
-import '../../features/dashboard/screens/dashboard_screen.dart';
-import '../../features/home/screens/main_shell.dart';
-import '../../features/shipments/screens/shipment_detail_screen.dart';
-import '../../features/shipments/screens/shipments_screen.dart';
-import '../../features/tracking/screens/tracking_screen.dart';
+import 'package:lodbod/domain/entities/auth_user.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/features/account/screens/account_screen.dart';
+import 'package:lodbod/features/analytics/screens/analytics_screen.dart';
+import 'package:lodbod/features/auth/providers/auth_notifier.dart';
+import 'package:lodbod/features/auth/screens/login_screen.dart';
+import 'package:lodbod/features/auth/screens/otp_screen.dart';
+import 'package:lodbod/features/auth/screens/registration_screen.dart';
+import 'package:lodbod/features/auth/screens/splash_screen.dart';
+import 'package:lodbod/features/create/screens/create_shipment_screen.dart';
+import 'package:lodbod/features/create/screens/order_placed_screen.dart';
+import 'package:lodbod/features/dashboard/screens/dashboard_screen.dart';
+import 'package:lodbod/features/home/screens/main_shell.dart';
+import 'package:lodbod/features/shipments/screens/shipment_detail_screen.dart';
+import 'package:lodbod/features/shipments/screens/shipments_screen.dart';
+import 'package:lodbod/features/tracking/screens/tracking_screen.dart';
 
 class AppRoutes {
   AppRoutes._();

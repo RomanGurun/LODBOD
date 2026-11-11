@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
-import '../../../core/constants/app_strings.dart';
-import '../../../core/router/app_router.dart';
-import '../../../domain/rules/shipment_limit_rule.dart';
-import '../../../shared/widgets/shipment_card.dart';
-import '../../../shared/widgets/state_views.dart';
-import '../../auth/providers/auth_notifier.dart';
-import '../../shipments/providers/shipment_notifier.dart';
-import '../../shipments/providers/shipment_providers.dart';
-import '../providers/dashboard_providers.dart';
-import '../widgets/dashboard_action_card.dart';
-import '../widgets/dashboard_hero_card.dart';
-import '../widgets/dashboard_next_pickup_card.dart';
-import '../widgets/dashboard_skeleton.dart';
-import '../widgets/dashboard_stat_card.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/router/app_router.dart';
+import 'package:lodbod/domain/rules/shipment_limit_rule.dart';
+import 'package:lodbod/shared/widgets/shipment_card.dart';
+import 'package:lodbod/shared/widgets/state_views.dart';
+import 'package:lodbod/features/auth/providers/auth_notifier.dart';
+import 'package:lodbod/features/shipments/providers/shipment_notifier.dart';
+import 'package:lodbod/features/shipments/providers/shipment_providers.dart';
+import 'package:lodbod/features/dashboard/providers/dashboard_providers.dart';
+import 'package:lodbod/features/dashboard/widgets/dashboard_action_card.dart';
+import 'package:lodbod/features/dashboard/widgets/dashboard_hero_card.dart';
+import 'package:lodbod/features/dashboard/widgets/dashboard_next_pickup_card.dart';
+import 'package:lodbod/features/dashboard/widgets/dashboard_skeleton.dart';
+import 'package:lodbod/features/dashboard/widgets/dashboard_stat_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});

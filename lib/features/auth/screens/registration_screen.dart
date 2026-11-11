@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/router/app_router.dart';
-import '../../../core/theme/tokens.dart';
-import '../../../core/utils/validators.dart';
-import '../../../shared/widgets/app_text_field.dart';
-import '../providers/auth_notifier.dart';
+import 'package:lodbod/core/router/app_router.dart';
+import 'package:lodbod/core/theme/tokens.dart';
+import 'package:lodbod/core/utils/validators.dart';
+import 'package:lodbod/shared/widgets/app_text_field.dart';
+import 'package:lodbod/features/auth/providers/auth_notifier.dart';
 
 /// Registration screen — "Create account" with step indicator.
 /// Creates the shipper account through [AuthNotifier] (Firebase Auth with

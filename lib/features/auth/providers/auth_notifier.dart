@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../domain/entities/auth_user.dart';
-import '../../../domain/entities/user_profile.dart';
-import '../../../shared/providers/repository_providers.dart';
+import 'package:lodbod/domain/entities/auth_user.dart';
+import 'package:lodbod/domain/entities/user_profile.dart';
+import 'package:lodbod/shared/providers/repository_providers.dart';
 
 class AuthNotifier extends AsyncNotifier<AuthUser?> {
   @override

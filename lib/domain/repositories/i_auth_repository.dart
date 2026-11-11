@@ -1,4 +1,4 @@
-import '../entities/auth_user.dart';
+import 'package:lodbod/domain/entities/auth_user.dart';
 
 abstract class IAuthRepository {
   AuthUser? get currentUser;

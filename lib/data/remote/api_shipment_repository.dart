@@ -1,16 +1,16 @@
 import 'package:dio/dio.dart';
 
-import '../../core/errors/app_exception.dart';
-import '../../domain/entities/bid.dart';
-import '../../domain/entities/create_shipment_draft.dart';
-import '../../domain/entities/shipment.dart';
-import '../../domain/enums/bid_status.dart';
-import '../../domain/enums/shipment_status.dart';
-import '../../domain/repositories/i_shipment_repository.dart';
-import '../../domain/rules/bid_acceptance_rule.dart';
-import '../../domain/rules/shipment_validation.dart';
-import '../models/bid_model.dart';
-import '../models/shipment_model.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/domain/entities/bid.dart';
+import 'package:lodbod/domain/entities/create_shipment_draft.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/bid_status.dart';
+import 'package:lodbod/domain/enums/shipment_status.dart';
+import 'package:lodbod/domain/repositories/i_shipment_repository.dart';
+import 'package:lodbod/domain/rules/bid_acceptance_rule.dart';
+import 'package:lodbod/domain/rules/shipment_validation.dart';
+import 'package:lodbod/data/models/bid_model.dart';
+import 'package:lodbod/data/models/shipment_model.dart';
 
 class ApiShipmentRepository implements IShipmentRepository {
   ApiShipmentRepository({required String baseUrl, Dio? dio})

@@ -1,1 +1,1 @@
-export '../theme/tokens.dart' show AppSizes;
+export 'package:lodbod/core/theme/tokens.dart' show AppSizes;

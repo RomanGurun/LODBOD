@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_sizes.dart';
-import '../../domain/enums/shipment_status.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/domain/enums/shipment_status.dart';
 
 class StatusBadge extends StatelessWidget {
   const StatusBadge({super.key, required this.status});

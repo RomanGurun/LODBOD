@@ -1,1 +1,1 @@
-export '../theme/tokens.dart' show AppColors;
+export 'package:lodbod/core/theme/tokens.dart' show AppColors;

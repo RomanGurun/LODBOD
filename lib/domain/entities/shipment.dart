@@ -1,4 +1,4 @@
-import '../enums/shipment_status.dart';
+import 'package:lodbod/domain/enums/shipment_status.dart';
 import 'bid.dart';
 
 class Shipment {

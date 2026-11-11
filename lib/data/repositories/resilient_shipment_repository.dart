@@ -1,13 +1,13 @@
-import '../../core/errors/app_exception.dart';
-import '../../core/network/data_source_status.dart';
-import '../../domain/entities/bid.dart';
-import '../../domain/entities/create_shipment_draft.dart';
-import '../../domain/entities/shipment.dart';
-import '../../domain/enums/shipment_status.dart';
-import '../../domain/repositories/i_shipment_repository.dart';
-import '../mock/mock_shipment_repository.dart';
-import '../models/bid_model.dart';
-import '../models/shipment_model.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/core/network/data_source_status.dart';
+import 'package:lodbod/domain/entities/bid.dart';
+import 'package:lodbod/domain/entities/create_shipment_draft.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/shipment_status.dart';
+import 'package:lodbod/domain/repositories/i_shipment_repository.dart';
+import 'package:lodbod/data/mock/mock_shipment_repository.dart';
+import 'package:lodbod/data/models/bid_model.dart';
+import 'package:lodbod/data/models/shipment_model.dart';
 
 class ResilientShipmentRepository implements IShipmentRepository {
   ResilientShipmentRepository({

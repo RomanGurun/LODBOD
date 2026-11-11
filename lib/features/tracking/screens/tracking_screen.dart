@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
-import '../../../core/extensions/date_ext.dart';
-import '../../../core/extensions/num_ext.dart';
-import '../../../domain/entities/shipment.dart';
-import '../../../domain/enums/shipment_status.dart';
-import '../../../domain/enums/vehicle_type.dart';
-import '../../../shared/widgets/skeletons.dart';
-import '../../../shared/widgets/state_views.dart';
-import '../../../shared/widgets/status_badge.dart';
-import '../../../shared/widgets/status_timeline.dart';
-import '../../shipments/providers/shipment_notifier.dart';
-import '../../shipments/providers/shipment_providers.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/core/extensions/date_ext.dart';
+import 'package:lodbod/core/extensions/num_ext.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/shipment_status.dart';
+import 'package:lodbod/domain/enums/vehicle_type.dart';
+import 'package:lodbod/shared/widgets/skeletons.dart';
+import 'package:lodbod/shared/widgets/state_views.dart';
+import 'package:lodbod/shared/widgets/status_badge.dart';
+import 'package:lodbod/shared/widgets/status_timeline.dart';
+import 'package:lodbod/features/shipments/providers/shipment_notifier.dart';
+import 'package:lodbod/features/shipments/providers/shipment_providers.dart';
 
 /// Shipment tracking screen.
 ///

@@ -1,4 +1,4 @@
-import '../enums/bid_status.dart';
+import 'package:lodbod/domain/enums/bid_status.dart';
 
 class Bid {
   final String id;

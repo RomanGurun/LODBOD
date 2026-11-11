@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_sizes.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
 
 class DataFallbackBanner extends StatelessWidget {
   const DataFallbackBanner({super.key});

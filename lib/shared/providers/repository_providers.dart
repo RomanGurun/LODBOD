@@ -3,21 +3,21 @@ import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/network/data_source_status.dart';
-import '../../data/mock/mock_auth_repository.dart';
-import '../../data/mock/mock_shipment_repository.dart';
-import '../../data/mock/mock_user_profile_repository.dart';
-import '../../data/remote/api_shipment_repository.dart';
-import '../../data/remote/firebase_auth_repository.dart';
-import '../../data/remote/firestore_user_profile_repository.dart';
-import '../../data/remote/interceptors/data_source_interceptor.dart';
-import '../../data/remote/interceptors/retry_interceptor.dart';
-import '../../data/remote/interceptors/safe_log_interceptor.dart';
-import '../../data/repositories/resilient_shipment_repository.dart';
-import '../../data/repositories/resilient_user_profile_repository.dart';
-import '../../domain/repositories/i_auth_repository.dart';
-import '../../domain/repositories/i_shipment_repository.dart';
-import '../../domain/repositories/i_user_profile_repository.dart';
+import 'package:lodbod/core/network/data_source_status.dart';
+import 'package:lodbod/data/mock/mock_auth_repository.dart';
+import 'package:lodbod/data/mock/mock_shipment_repository.dart';
+import 'package:lodbod/data/mock/mock_user_profile_repository.dart';
+import 'package:lodbod/data/remote/api_shipment_repository.dart';
+import 'package:lodbod/data/remote/firebase_auth_repository.dart';
+import 'package:lodbod/data/remote/firestore_user_profile_repository.dart';
+import 'package:lodbod/data/remote/interceptors/data_source_interceptor.dart';
+import 'package:lodbod/data/remote/interceptors/retry_interceptor.dart';
+import 'package:lodbod/data/remote/interceptors/safe_log_interceptor.dart';
+import 'package:lodbod/data/repositories/resilient_shipment_repository.dart';
+import 'package:lodbod/data/repositories/resilient_user_profile_repository.dart';
+import 'package:lodbod/domain/repositories/i_auth_repository.dart';
+import 'package:lodbod/domain/repositories/i_shipment_repository.dart';
+import 'package:lodbod/domain/repositories/i_user_profile_repository.dart';
 
 /// Primary MockAPI base URL. Override with
 /// `--dart-define=API_BASE_URL=https://…` to point the app at another

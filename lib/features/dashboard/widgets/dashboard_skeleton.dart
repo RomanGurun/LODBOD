@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../core/constants/app_strings.dart';
-import '../../../core/theme/tokens.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/theme/tokens.dart';
 
 /// Loading state mirroring the reference skeleton: greeting, hero, stats,
 /// action, and recent blocks shimmering above a centered hint.

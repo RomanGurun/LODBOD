@@ -1,5 +1,5 @@
-import '../models/bid_model.dart';
-import '../models/shipment_model.dart';
+import 'package:lodbod/data/models/bid_model.dart';
+import 'package:lodbod/data/models/shipment_model.dart';
 
 List<ShipmentModel> buildSeedShipments({DateTime? now}) {
   final clock = now ?? DateTime.now();

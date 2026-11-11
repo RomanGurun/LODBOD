@@ -1,5 +1,5 @@
-import '../../domain/entities/bid.dart';
-import '../../domain/enums/bid_status.dart';
+import 'package:lodbod/domain/entities/bid.dart';
+import 'package:lodbod/domain/enums/bid_status.dart';
 
 class BidModel {
   final String id;

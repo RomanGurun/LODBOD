@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/tokens.dart';
+import 'package:lodbod/core/theme/tokens.dart';
 
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.size = AppSizes.loginLogo});

@@ -1,7 +1,7 @@
-import '../../core/errors/app_exception.dart';
-import '../entities/bid.dart';
-import '../entities/shipment.dart';
-import '../enums/shipment_status.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/domain/entities/bid.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/shipment_status.dart';
 
 class BidAcceptanceRule {
   BidAcceptanceRule._();

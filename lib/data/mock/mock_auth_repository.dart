@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import '../../core/constants/app_strings.dart';
-import '../../core/errors/app_exception.dart';
-import '../../domain/entities/auth_user.dart';
-import '../../domain/repositories/i_auth_repository.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/domain/entities/auth_user.dart';
+import 'package:lodbod/domain/repositories/i_auth_repository.dart';
 
 class MockAuthRepository implements IAuthRepository {
   MockAuthRepository({this.latency = const Duration(milliseconds: 350)});

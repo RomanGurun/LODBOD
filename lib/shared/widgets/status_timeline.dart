@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../core/extensions/date_ext.dart';
-import '../../core/theme/tokens.dart';
-import '../../domain/entities/shipment.dart';
-import '../../domain/enums/shipment_status.dart';
+import 'package:lodbod/core/extensions/date_ext.dart';
+import 'package:lodbod/core/theme/tokens.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/shipment_status.dart';
 
 /// Readable shipment lifecycle timeline shared by the detail and tracking
 /// screens. Steps are derived from the current status only — there is no

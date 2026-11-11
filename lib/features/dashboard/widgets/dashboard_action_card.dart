@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
 
 /// "Needs your action" row: a white card with a soft info-blue edge,
 /// tinted icon, bold title, muted subtitle and a trailing chevron.

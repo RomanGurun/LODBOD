@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
-import '../../../core/extensions/date_ext.dart';
-import '../../../core/extensions/num_ext.dart';
-import '../../../core/extensions/string_ext.dart';
-import '../../../domain/entities/bid.dart';
-import '../../../domain/entities/shipment.dart';
-import '../../../domain/enums/bid_status.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/core/extensions/date_ext.dart';
+import 'package:lodbod/core/extensions/num_ext.dart';
+import 'package:lodbod/core/extensions/string_ext.dart';
+import 'package:lodbod/domain/entities/bid.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/bid_status.dart';
 import 'bid_details_sheet.dart';
 
 /// Compact carrier bid summary card. Tapping it opens the full bid details

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_strings.dart';
-import '../../../core/theme/tokens.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/theme/tokens.dart';
 
 /// OTP verification screen (Tier 2) — 6-digit code boxes with countdown.
 /// Demo-only: shows a dialog that OTP is not available.

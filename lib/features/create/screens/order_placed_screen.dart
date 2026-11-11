@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/extensions/date_ext.dart';
-import '../../../core/extensions/num_ext.dart';
-import '../../../core/router/app_router.dart';
-import '../../../core/theme/tokens.dart';
-import '../../../domain/entities/shipment.dart';
-import '../../../domain/enums/vehicle_type.dart';
+import 'package:lodbod/core/extensions/date_ext.dart';
+import 'package:lodbod/core/extensions/num_ext.dart';
+import 'package:lodbod/core/router/app_router.dart';
+import 'package:lodbod/core/theme/tokens.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/vehicle_type.dart';
 
 /// Full-screen success confirmation shown after placing a load order.
 ///

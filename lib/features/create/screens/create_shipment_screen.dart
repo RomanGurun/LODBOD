@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
-import '../../../core/constants/app_strings.dart';
-import '../../../core/errors/app_exception.dart';
-import '../../../core/extensions/date_ext.dart';
-import '../../../core/extensions/num_ext.dart';
-import '../../../core/router/app_router.dart';
-import '../../../domain/entities/create_shipment_draft.dart';
-import '../../../domain/enums/cargo_category.dart';
-import '../../../domain/enums/vehicle_type.dart';
-import '../../../domain/rules/shipment_validation.dart';
-import '../../shipments/providers/shipment_notifier.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/core/extensions/date_ext.dart';
+import 'package:lodbod/core/extensions/num_ext.dart';
+import 'package:lodbod/core/router/app_router.dart';
+import 'package:lodbod/domain/entities/create_shipment_draft.dart';
+import 'package:lodbod/domain/enums/cargo_category.dart';
+import 'package:lodbod/domain/enums/vehicle_type.dart';
+import 'package:lodbod/domain/rules/shipment_validation.dart';
+import 'package:lodbod/features/shipments/providers/shipment_notifier.dart';
 
 class CreateShipmentScreen extends ConsumerStatefulWidget {
   const CreateShipmentScreen({super.key});

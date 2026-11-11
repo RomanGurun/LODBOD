@@ -1,5 +1,5 @@
-import '../../core/errors/app_exception.dart';
-import '../entities/shipment.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
 
 class ShipmentLimitRule {
   ShipmentLimitRule._();

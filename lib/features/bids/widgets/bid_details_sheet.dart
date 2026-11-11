@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
-import '../../../core/constants/app_strings.dart';
-import '../../../core/errors/app_exception.dart';
-import '../../../core/extensions/date_ext.dart';
-import '../../../core/extensions/num_ext.dart';
-import '../../../core/extensions/string_ext.dart';
-import '../../../domain/entities/bid.dart';
-import '../../../domain/entities/shipment.dart';
-import '../../../domain/enums/bid_status.dart';
-import '../../../domain/enums/shipment_status.dart';
-import '../../shipments/providers/shipment_notifier.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/core/extensions/date_ext.dart';
+import 'package:lodbod/core/extensions/num_ext.dart';
+import 'package:lodbod/core/extensions/string_ext.dart';
+import 'package:lodbod/domain/entities/bid.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/bid_status.dart';
+import 'package:lodbod/domain/enums/shipment_status.dart';
+import 'package:lodbod/features/shipments/providers/shipment_notifier.dart';
 
 /// Opens the full bid details bottom sheet: carrier profile, fare, ETA and
 /// carrier message, with an explicit confirmation before accepting.

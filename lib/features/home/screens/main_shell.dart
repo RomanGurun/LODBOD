@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../shared/providers/repository_providers.dart';
-import '../../../shared/widgets/data_fallback_banner.dart';
-import '../../../shared/widgets/lodbod_bottom_nav.dart';
+import 'package:lodbod/shared/providers/repository_providers.dart';
+import 'package:lodbod/shared/widgets/data_fallback_banner.dart';
+import 'package:lodbod/shared/widgets/lodbod_bottom_nav.dart';
 
 class MainShell extends ConsumerWidget {
   const MainShell({super.key, required this.navigationShell});

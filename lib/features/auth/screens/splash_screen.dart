@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_strings.dart';
-import '../../../core/theme/tokens.dart';
-import '../../../shared/widgets/app_logo.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/theme/tokens.dart';
+import 'package:lodbod/shared/widgets/app_logo.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});

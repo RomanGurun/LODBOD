@@ -1,7 +1,7 @@
-import '../entities/bid.dart';
-import '../entities/create_shipment_draft.dart';
-import '../entities/shipment.dart';
-import '../enums/shipment_status.dart';
+import 'package:lodbod/domain/entities/bid.dart';
+import 'package:lodbod/domain/entities/create_shipment_draft.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/shipment_status.dart';
 
 abstract class IShipmentRepository {
   Future<List<Shipment>> getShipments({String? search, ShipmentStatus? status});

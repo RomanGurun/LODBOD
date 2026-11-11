@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/tokens.dart';
+import 'package:lodbod/core/theme/tokens.dart';
 
 /// A thin horizontal dashed rule, as used between card rows.
 class DashedDivider extends StatelessWidget {

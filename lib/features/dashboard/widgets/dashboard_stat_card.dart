@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
-import '../../../shared/widgets/app_card.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/shared/widgets/app_card.dart';
 
 /// A single dashboard metric: tinted icon circle, big number and label.
 /// Tapping it opens the shipments list filtered to this metric.

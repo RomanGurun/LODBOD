@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../domain/entities/bid.dart';
-import '../../../domain/entities/shipment.dart';
-import '../../../domain/enums/shipment_status.dart';
+import 'package:lodbod/domain/entities/bid.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/enums/shipment_status.dart';
 import 'shipment_notifier.dart';
 
 class ShipmentFilter {

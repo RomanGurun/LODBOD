@@ -1,4 +1,4 @@
-import '../entities/shipment.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
 
 /// Shipment ownership rules.
 ///

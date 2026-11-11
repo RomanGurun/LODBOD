@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../domain/entities/shipment.dart';
-import '../../shipments/providers/shipment_notifier.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/features/shipments/providers/shipment_notifier.dart';
 
 /// The most recently updated shipments, for the "Recent shipments" section.
 final recentShipmentsProvider = Provider<AsyncValue<List<Shipment>>>((ref) {

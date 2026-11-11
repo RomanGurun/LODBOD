@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 
-import '../../core/constants/app_strings.dart';
-import '../../core/errors/app_exception.dart';
-import '../../domain/entities/auth_user.dart';
-import '../../domain/repositories/i_auth_repository.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/domain/entities/auth_user.dart';
+import 'package:lodbod/domain/repositories/i_auth_repository.dart';
 
 class FirebaseAuthRepository implements IAuthRepository {
   FirebaseAuthRepository({

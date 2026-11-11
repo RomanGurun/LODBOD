@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_sizes.dart';
-import '../../../core/constants/app_strings.dart';
-import '../../../core/extensions/date_ext.dart';
-import '../../../domain/entities/shipment.dart';
-import '../../../shared/widgets/app_card.dart';
+import 'package:lodbod/core/constants/app_colors.dart';
+import 'package:lodbod/core/constants/app_sizes.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/extensions/date_ext.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/shared/widgets/app_card.dart';
 
 /// Compact row for the shipment with the nearest upcoming pickup,
 /// with a plain "Details" text action on the right.

@@ -1,5 +1,5 @@
-import '../../domain/entities/user_profile.dart';
-import '../../domain/repositories/i_user_profile_repository.dart';
+import 'package:lodbod/domain/entities/user_profile.dart';
+import 'package:lodbod/domain/repositories/i_user_profile_repository.dart';
 
 /// Remote-first user profile repository with an in-memory fallback.
 ///

@@ -1,4 +1,4 @@
-import '../entities/user_profile.dart';
+import 'package:lodbod/domain/entities/user_profile.dart';
 
 /// Abstract interface for user profile persistence.
 abstract class IUserProfileRepository {

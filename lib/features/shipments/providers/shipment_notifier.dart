@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/errors/app_exception.dart';
-import '../../../domain/entities/auth_user.dart';
-import '../../../domain/entities/create_shipment_draft.dart';
-import '../../../domain/entities/shipment.dart';
-import '../../../domain/rules/shipment_limit_rule.dart';
-import '../../../domain/rules/shipment_ownership.dart';
-import '../../auth/providers/auth_notifier.dart';
-import '../../../shared/providers/repository_providers.dart';
+import 'package:lodbod/core/errors/app_exception.dart';
+import 'package:lodbod/domain/entities/auth_user.dart';
+import 'package:lodbod/domain/entities/create_shipment_draft.dart';
+import 'package:lodbod/domain/entities/shipment.dart';
+import 'package:lodbod/domain/rules/shipment_limit_rule.dart';
+import 'package:lodbod/domain/rules/shipment_ownership.dart';
+import 'package:lodbod/features/auth/providers/auth_notifier.dart';
+import 'package:lodbod/shared/providers/repository_providers.dart';
 
 /// Single source of truth for the signed-in shipper's shipments.
 ///

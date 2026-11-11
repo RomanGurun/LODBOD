@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_strings.dart';
-import '../../../core/router/app_router.dart';
-import '../../../core/theme/tokens.dart';
-import '../../../core/utils/validators.dart';
-import '../../../shared/widgets/app_logo.dart';
-import '../../../shared/widgets/app_text_field.dart';
-import '../providers/auth_notifier.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
+import 'package:lodbod/core/router/app_router.dart';
+import 'package:lodbod/core/theme/tokens.dart';
+import 'package:lodbod/core/utils/validators.dart';
+import 'package:lodbod/shared/widgets/app_logo.dart';
+import 'package:lodbod/shared/widgets/app_text_field.dart';
+import 'package:lodbod/features/auth/providers/auth_notifier.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});

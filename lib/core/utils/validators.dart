@@ -1,4 +1,4 @@
-import '../constants/app_strings.dart';
+import 'package:lodbod/core/constants/app_strings.dart';
 
 class Validators {
   Validators._();
