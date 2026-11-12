@@ -159,7 +159,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     AppTextField(
                       controller: _emailController,
                       label: 'Gmail address',
-                      hint: '@gmail.com',
+                      hint: 'yourname@gmail.com',
+                      helper: 'Only @gmail.com addresses are accepted',
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.email],

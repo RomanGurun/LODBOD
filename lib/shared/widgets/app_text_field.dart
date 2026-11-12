@@ -10,6 +10,7 @@ class AppTextField extends StatelessWidget {
     this.initialValue,
     this.label,
     this.hint,
+    this.helper,
     this.prefixText,
     this.prefixStyle,
     this.prefixIcon,
@@ -36,6 +37,10 @@ class AppTextField extends StatelessWidget {
   final String? initialValue;
   final String? label;
   final String? hint;
+
+  /// Persistent helper line shown under the field, useful for format rules
+  /// that should be visible before validation runs.
+  final String? helper;
 
   /// Inline prefix (e.g. a country code). Unlike [prefixIcon] it is laid out
   /// on the same baseline as the input text, so it stays aligned while the
@@ -97,6 +102,8 @@ class AppTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        helperText: helper,
+        helperMaxLines: 2,
         alignLabelWithHint: alignLabelWithHint,
         prefixText: prefixText,
         prefixStyle: prefixStyle,

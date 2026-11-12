@@ -307,11 +307,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Reset password'),
-        content: Text(
-          'Password reset is not available in this demo.\n\n'
-          'Use ${AppStrings.demoEmail} with password '
-          '${AppStrings.demoPassword}.',
+        title: const Text('Feature unavailable'),
+        content: const Text(
+          'Password reset is not available in this prototype yet. '
+          'Please create a new account or contact support.',
         ),
         actions: [
           TextButton(
