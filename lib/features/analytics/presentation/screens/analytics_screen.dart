@@ -160,72 +160,74 @@ class _MonthlyBarChart extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final maxY = series.fold<int>(0, (max, e) => e.$2 > max ? e.$2 : max);
 
-    return SizedBox(
-      height: 180,
-      child: BarChart(
-        BarChartData(
-          maxY: (maxY + 1).toDouble(),
-          barTouchData: BarTouchData(
-            touchTooltipData: BarTouchTooltipData(
-              getTooltipItem: (group, groupIndex, rod, rodIndex) =>
-                  BarTooltipItem(
-                '${rod.toY.toInt()}',
-                textTheme.labelMedium ?? const TextStyle(),
+    return RepaintBoundary(
+      child: SizedBox(
+        height: 180,
+        child: BarChart(
+          BarChartData(
+            maxY: (maxY + 1).toDouble(),
+            barTouchData: BarTouchData(
+              touchTooltipData: BarTouchTooltipData(
+                getTooltipItem: (group, groupIndex, rod, rodIndex) =>
+                    BarTooltipItem(
+                  '${rod.toY.toInt()}',
+                  textTheme.labelMedium ?? const TextStyle(),
+                ),
               ),
             ),
-          ),
-          titlesData: FlTitlesData(
-            leftTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
+            titlesData: FlTitlesData(
+              leftTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 28,
+                  getTitlesWidget: (value, meta) {
+                    final index = value.toInt();
+                    if (index < 0 || index >= series.length) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        _monthLabels[series[index].$1.month - 1],
+                        style: textTheme.labelSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 28,
-                getTitlesWidget: (value, meta) {
-                  final index = value.toInt();
-                  if (index < 0 || index >= series.length) {
-                    return const SizedBox.shrink();
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      _monthLabels[series[index].$1.month - 1],
-                      style: textTheme.labelSmall?.copyWith(
-                        color: AppColors.textSecondary,
+            gridData: const FlGridData(show: false),
+            borderData: FlBorderData(show: false),
+            barGroups: <BarChartGroupData>[
+              for (var i = 0; i < series.length; i++)
+                BarChartGroupData(
+                  x: i,
+                  barRods: <BarChartRodData>[
+                    BarChartRodData(
+                      toY: series[i].$2.toDouble(),
+                      width: 18,
+                      color: series[i].$2 == 0
+                          ? AppColors.surfaceVariant
+                          : AppColors.primary,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(4),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
+                  ],
+                ),
+            ],
           ),
-          gridData: const FlGridData(show: false),
-          borderData: FlBorderData(show: false),
-          barGroups: <BarChartGroupData>[
-            for (var i = 0; i < series.length; i++)
-              BarChartGroupData(
-                x: i,
-                barRods: <BarChartRodData>[
-                  BarChartRodData(
-                    toY: series[i].$2.toDouble(),
-                    width: 18,
-                    color: series[i].$2 == 0
-                        ? AppColors.surfaceVariant
-                        : AppColors.primary,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(4),
-                    ),
-                  ),
-                ],
-              ),
-          ],
         ),
       ),
     );

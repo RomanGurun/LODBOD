@@ -22,10 +22,10 @@ The project demonstrates **production-grade engineering**, not just prototype sc
 
 ## ⚡ 5-Minute Fast-Track Review (How to Test)
 
-### Step 1: Launch & Instant Demo Login
+### Step 1: Launch & Demo Login
 1. Install the APK: `adb install -r build/app/outputs/flutter-apk/app-release.apk` (or run `flutter run`).
-2. On the Login Screen, tap **"Use demo account"** (fills `demo@lodbod.com` / `Demo@1234`).
-3. Tap **"Sign In"**. You will instantly land on the Dashboard with pre-seeded shipments (`LOD-1001` through `LOD-1004`).
+2. On the Login Screen, open the **Email** tab and enter `demo@lodbod.com` / `Demo@1234`.
+3. You land on the Dashboard with pre-seeded shipments (`LOD-1001` through `LOD-1004`).
 
 ### Step 2: Test the 3-Active-Request Limit
 1. Tap the **"+" (Post Load)** tab in the bottom navigation.

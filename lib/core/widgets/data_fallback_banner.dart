@@ -24,7 +24,8 @@ class DataFallbackBanner extends StatelessWidget {
             const SizedBox(width: AppSizes.sm),
             Expanded(
               child: Text(
-                'Live API unavailable — showing local demo data',
+                'Live API unavailable — offline mode. Changes are kept for '
+                'this session only.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.statusAwaitingBids,
                       fontWeight: FontWeight.w600,

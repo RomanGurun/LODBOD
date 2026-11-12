@@ -106,7 +106,7 @@ class _TrackingContent extends StatelessWidget {
               ),
               // Top bar
               Positioned(
-                top: MediaQuery.of(context).padding.top + 8,
+                top: MediaQuery.paddingOf(context).top + 8,
                 left: 12,
                 right: 12,
                 child: Row(

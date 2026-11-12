@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,6 +35,10 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
   ShipmentStatus? _status;
   bool _activeOnly = false;
 
+  /// Debounces filtering so typing a word rebuilds the list once instead of
+  /// once per keystroke.
+  Timer? _searchDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +53,7 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -97,7 +104,7 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
                                 onPressed: _clearSearch,
                               ),
                       ),
-                      onChanged: (value) => setState(() => _query = value),
+                      onChanged: _onSearchChanged,
                     ),
                   ),
                 ),
@@ -198,7 +205,16 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
     );
   }
 
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
+      if (!mounted || value == _query) return;
+      setState(() => _query = value);
+    });
+  }
+
   void _clearSearch() {
+    _searchDebounce?.cancel();
     _searchController.clear();
     setState(() => _query = '');
   }

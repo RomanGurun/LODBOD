@@ -53,7 +53,7 @@ class OrderPlacedScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 60,
+                top: MediaQuery.paddingOf(context).top + 60,
                 bottom: 40,
               ),
               decoration: const BoxDecoration(
@@ -164,7 +164,7 @@ class OrderPlacedScreen extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+            SizedBox(height: MediaQuery.paddingOf(context).bottom + 16),
           ],
         ),
       ),

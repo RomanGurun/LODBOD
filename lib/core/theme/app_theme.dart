@@ -5,7 +5,11 @@ import 'package:lodbod/core/theme/tokens.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get light {
+  /// Built once and reused. Recreating a full [ThemeData] on every app
+  /// rebuild invalidates inherited theme dependents for no reason.
+  static final ThemeData light = _buildLight();
+
+  static ThemeData _buildLight() {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.light,
