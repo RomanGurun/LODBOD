@@ -65,10 +65,12 @@ void main() {
     );
     expect(find.byType(BackButton), findsNothing);
     // AuthPage renders an IconButton with Icons.arrow_back in the AppBar
-    expect(find.byIcon(Icons.arrow_back), findsNWidgets(2)); // AppBar + TextButton
+    expect(
+        find.byIcon(Icons.arrow_back), findsNWidgets(2)); // AppBar + TextButton
   });
 
-  testWidgets('tapping Go back deletes pending unverified user', (tester) async {
+  testWidgets('tapping Go back deletes pending unverified user',
+      (tester) async {
     await pumpScreen(tester);
 
     expect(auth.deleteCurrentUserCount, 0);

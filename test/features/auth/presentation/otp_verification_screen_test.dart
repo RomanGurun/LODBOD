@@ -107,7 +107,8 @@ void main() {
     await disposeScreen(tester);
   });
 
-  testWidgets('shows the Firebase error and deletes all digits for a wrong code',
+  testWidgets(
+      'shows the Firebase error and deletes all digits for a wrong code',
       (tester) async {
     await sendOtp();
     await pumpScreen(tester);

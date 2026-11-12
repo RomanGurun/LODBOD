@@ -39,13 +39,16 @@ class MockApiUserProfileDataSource {
     }
   }
 
-  /// Finds a profile by phone number.
+  /// Finds every profile whose phone number matches.
   ///
   /// MockAPI filters are exact matches, so the national digits and the E.164
-  /// form are both tried; older records may contain either shape.
-  Future<UserProfileModel?> fetchByPhoneNumber(String phoneNumber) async {
+  /// form are both tried; older records may contain either shape. The MockAPI
+  /// filter also silently returns the whole collection when the value starts
+  /// with `+`, so results are always re-checked client-side.
+  Future<List<UserProfileModel>> fetchAllByPhoneNumber(
+      String phoneNumber) async {
     final national = PhoneNumber.nationalDigits(phoneNumber);
-    if (national.isEmpty) return null;
+    if (national.isEmpty) return const <UserProfileModel>[];
 
     final candidates = <String>{
       phoneNumber.trim(),
@@ -53,14 +56,17 @@ class MockApiUserProfileDataSource {
       PhoneNumber.toE164(national),
     }..removeWhere((value) => value.isEmpty);
 
+    final found = <String, UserProfileModel>{};
     for (final candidate in candidates) {
       try {
         final response = await _dio.get<dynamic>(
           ApiEndpoints.users,
           queryParameters: <String, dynamic>{'phoneNumber': candidate},
         );
-        final match = _firstMatchingPhone(response.data, national);
-        if (match != null) return match;
+        for (final match in _matchingPhones(response.data, national)) {
+          final key = match.recordId ?? match.firebaseUid;
+          found.putIfAbsent(key, () => match);
+        }
       } on DioException catch (error) {
         // MockAPI returns 404 for a filtered read with zero matches.
         if (error.type == DioExceptionType.badResponse &&
@@ -78,7 +84,7 @@ class MockApiUserProfileDataSource {
         );
       }
     }
-    return null;
+    return found.values.toList();
   }
 
   Future<UserProfileModel> create(UserProfileModel model) async {
@@ -106,21 +112,22 @@ class MockApiUserProfileDataSource {
     }
   }
 
-  UserProfileModel? _firstMatchingPhone(dynamic data, String national) {
+  List<UserProfileModel> _matchingPhones(dynamic data, String national) {
     final items = data is List<dynamic>
         ? data
         : data is Map<String, dynamic>
             ? <dynamic>[data]
             : const <dynamic>[];
 
+    final matches = <UserProfileModel>[];
     for (final item in items) {
       if (item is! Map<String, dynamic>) continue;
       final model = UserProfileModel.fromJson(item);
       if (PhoneNumber.nationalDigits(model.phoneNumber) == national) {
-        return model;
+        matches.add(model);
       }
     }
-    return null;
+    return matches;
   }
 
   UserProfileModel? _firstMatching(dynamic data, String uid) {

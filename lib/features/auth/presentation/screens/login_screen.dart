@@ -30,7 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _emailPasswordController = TextEditingController();
 
-  _AuthMode _mode = _AuthMode.phone;
+  _AuthMode _mode = _AuthMode.email;
   bool _obscurePhonePassword = true;
   bool _obscureEmailPassword = true;
   bool _keepSignedIn = true;
@@ -161,6 +161,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             controller: _phoneController,
             label: AppStrings.phoneNumber,
             hint: AppStrings.phoneHint,
+            helper: '10-digit Nepal mobile, without +977',
             prefixText: '${PhoneNumber.nepalDialCode} ',
             prefixStyle: const TextStyle(
               fontFamily: AppTypography.fontFamily,
@@ -228,7 +229,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           AppTextField(
             controller: _emailController,
             label: 'Email address',
-            hint: 'you@company.com',
+            hint: 'yourname@gmail.com',
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             autofillHints: const [AutofillHints.email],

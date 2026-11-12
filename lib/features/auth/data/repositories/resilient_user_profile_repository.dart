@@ -32,12 +32,18 @@ class ResilientUserProfileRepository implements IUserProfileRepository {
 
   @override
   Future<UserProfile?> findByPhone(String phoneNumber) async {
-    if (_usingFallback) return fallback.findByPhone(phoneNumber);
+    final matches = await findAllByPhone(phoneNumber);
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  @override
+  Future<List<UserProfile>> findAllByPhone(String phoneNumber) async {
+    if (_usingFallback) return fallback.findAllByPhone(phoneNumber);
     try {
-      return await remote.findByPhone(phoneNumber);
+      return await remote.findAllByPhone(phoneNumber);
     } on Exception {
       _usingFallback = true;
-      return fallback.findByPhone(phoneNumber);
+      return fallback.findAllByPhone(phoneNumber);
     }
   }
 

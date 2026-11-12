@@ -26,16 +26,26 @@ class FirestoreUserProfileRepository implements IUserProfileRepository {
 
   @override
   Future<UserProfile?> findByPhone(String phoneNumber) async {
+    final matches = await findAllByPhone(phoneNumber);
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  @override
+  Future<List<UserProfile>> findAllByPhone(String phoneNumber) async {
     final trimmed = phoneNumber.trim();
-    if (trimmed.isEmpty) return null;
+    if (trimmed.isEmpty) return const <UserProfile>[];
+    final seen = <String>{};
+    final matches = <UserProfile>[];
     for (final field in const <String>['phone', 'phoneNumber']) {
-      final query =
-          await _users.where(field, isEqualTo: trimmed).limit(1).get();
-      if (query.docs.isNotEmpty) {
-        return UserProfile.fromFirestore(query.docs.first.data());
+      final query = await _users.where(field, isEqualTo: trimmed).get();
+      for (final doc in query.docs) {
+        if (seen.add(doc.id)) {
+          matches.add(UserProfile.fromFirestore(doc.data()));
+        }
       }
     }
-    return null;
+    matches.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return matches;
   }
 
   @override

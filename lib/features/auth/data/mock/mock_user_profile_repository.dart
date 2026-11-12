@@ -14,14 +14,19 @@ class MockUserProfileRepository implements IUserProfileRepository {
 
   @override
   Future<UserProfile?> findByPhone(String phoneNumber) async {
+    final matches = await findAllByPhone(phoneNumber);
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  @override
+  Future<List<UserProfile>> findAllByPhone(String phoneNumber) async {
     final wanted = PhoneNumber.nationalDigits(phoneNumber);
-    if (wanted.isEmpty) return null;
-    for (final profile in _store.values) {
-      if (PhoneNumber.nationalDigits(profile.phone) == wanted) {
-        return profile;
-      }
-    }
-    return null;
+    if (wanted.isEmpty) return const <UserProfile>[];
+    final matches = _store.values
+        .where((profile) => PhoneNumber.nationalDigits(profile.phone) == wanted)
+        .toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return matches;
   }
 
   @override

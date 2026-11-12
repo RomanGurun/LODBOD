@@ -12,6 +12,15 @@ abstract class IUserProfileRepository {
   /// when no profile matches.
   Future<UserProfile?> findByPhone(String phoneNumber);
 
+  /// Find every profile whose phone number matches [phoneNumber].
+  ///
+  /// A number can legitimately appear on more than one record — for example
+  /// when a user signs up twice with different emails. Phone sign-in checks
+  /// the typed password against each candidate so a stale older record can
+  /// never hide the account the user actually owns. Returns an empty list when
+  /// nothing matches; newer profiles come first.
+  Future<List<UserProfile>> findAllByPhone(String phoneNumber);
+
   /// Returns the stored profile, creating a minimal one when the user has never
   /// completed their profile. Implementations must never create a second
   /// record for the same Firebase UID.

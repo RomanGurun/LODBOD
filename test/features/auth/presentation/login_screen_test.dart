@@ -38,7 +38,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('defaults to the phone tab on a narrow phone', (tester) async {
+  testWidgets('defaults to the email tab on a narrow phone', (tester) async {
     await pumpAt(tester, const Size(320, 568));
 
     expect(tester.takeException(), isNull);
@@ -46,9 +46,9 @@ void main() {
         find.byKey(const ValueKey<String>('auth-tab-phone')), findsOneWidget);
     expect(
         find.byKey(const ValueKey<String>('auth-tab-email')), findsOneWidget);
-    expect(find.text('Sign In & Send OTP'), findsOneWidget);
+    expect(find.text('Sign In'), findsOneWidget);
     expect(find.byType(TextFormField), findsNWidgets(2));
-    expect(find.text('Keep me signed in'), findsNothing);
+    expect(find.text('Keep me signed in'), findsOneWidget);
   });
 
   testWidgets('shows the email form on the email tab without overflow',
@@ -72,6 +72,9 @@ void main() {
   testWidgets('validates the Nepal phone number before sending an OTP',
       (tester) async {
     await pumpAt(tester, const Size(390, 844));
+
+    await tester.tap(find.byKey(const ValueKey<String>('auth-tab-phone')));
+    await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).first, '12345');
     await tester.tap(find.widgetWithText(FilledButton, 'Sign In & Send OTP'));

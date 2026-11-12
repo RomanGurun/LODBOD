@@ -25,10 +25,19 @@ class MockApiUserProfileRepository implements IUserProfileRepository {
 
   @override
   Future<UserProfile?> findByPhone(String phoneNumber) async {
-    final model = await _remote.fetchByPhoneNumber(phoneNumber);
-    if (model == null) return null;
-    _remember(model.firebaseUid, model.recordId);
-    return model.toEntity();
+    final matches = await findAllByPhone(phoneNumber);
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  @override
+  Future<List<UserProfile>> findAllByPhone(String phoneNumber) async {
+    final models = await _remote.fetchAllByPhoneNumber(phoneNumber);
+    for (final model in models) {
+      _remember(model.firebaseUid, model.recordId);
+    }
+    final profiles = models.map((model) => model.toEntity()).toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return profiles;
   }
 
   @override

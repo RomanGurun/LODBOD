@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lodbod/core/constants/app_strings.dart';
 import 'package:lodbod/core/errors/app_exception.dart';
 import 'package:lodbod/features/auth/domain/entities/phone_verification.dart';
+import 'package:lodbod/features/auth/domain/entities/user_profile.dart';
+import 'package:lodbod/features/auth/domain/repositories/i_auth_repository.dart';
 import 'package:lodbod/features/auth/presentation/providers/auth_notifier.dart';
 import 'package:lodbod/core/di/repository_providers.dart';
 
@@ -62,6 +64,13 @@ class PhoneAuthController extends Notifier<PhoneAuthState> {
   String? _pendingPassword;
   String? _pendingEmail;
 
+  /// Every email account whose profile shares the typed phone number.
+  ///
+  /// The app used to allow the same number to be registered with several
+  /// emails, so one lookup can legitimately return multiple profiles. The
+  /// typed password is checked against each of them in turn.
+  List<String> _pendingEmails = const <String>[];
+
   /// True when the phone belongs to an existing email account and must be
   /// linked to it instead of creating a second phone-only user.
   bool _linkingExistingAccount = false;
@@ -98,13 +107,11 @@ class PhoneAuthController extends Notifier<PhoneAuthState> {
         clearError: true,
       );
 
-      String? profileEmail;
+      List<UserProfile> profiles;
       try {
-        final profile = await ref
+        profiles = await ref
             .read(userProfileRepositoryProvider)
-            .findByPhone(phoneNumber);
-        final email = profile?.email.trim() ?? '';
-        if (email.isNotEmpty) profileEmail = email;
+            .findAllByPhone(phoneNumber);
       } on AppException catch (error) {
         state = state.copyWith(isSending: false, error: error.message);
         return null;
@@ -117,7 +124,15 @@ class PhoneAuthController extends Notifier<PhoneAuthState> {
         return null;
       }
 
-      if (profileEmail == null) {
+      // Newest profile first, so the account the user most likely created is
+      // tried before older duplicates.
+      final emails = profiles
+          .map((profile) => profile.email.trim().toLowerCase())
+          .where((email) => email.isNotEmpty)
+          .toSet()
+          .toList();
+
+      if (emails.isEmpty) {
         state = state.copyWith(
           phoneNumber: phoneNumber,
           isSending: false,
@@ -127,7 +142,7 @@ class PhoneAuthController extends Notifier<PhoneAuthState> {
       }
 
       _pendingPassword = candidate;
-      _pendingEmail = profileEmail;
+      _pendingEmails = emails;
       _linkingExistingAccount = true;
     }
 
@@ -143,12 +158,7 @@ class PhoneAuthController extends Notifier<PhoneAuthState> {
       final repository = ref.read(authRepositoryProvider);
       final PhoneVerification result;
       if (_linkingExistingAccount) {
-        result = await repository.requestPhoneLink(
-          phoneNumber: phoneNumber,
-          email: _pendingEmail!,
-          password: _pendingPassword!,
-          resendToken: token,
-        );
+        result = await _requestLink(repository, phoneNumber, token);
       } else {
         result = await repository.requestPhoneVerification(
           phoneNumber: phoneNumber,
@@ -189,6 +199,46 @@ class PhoneAuthController extends Notifier<PhoneAuthState> {
       );
       return null;
     }
+  }
+
+  /// Asks Firebase for the OTP, proving the typed password first.
+  ///
+  /// Older records may share a phone number across several email accounts. The
+  /// password is tried against every candidate; the SMS is only sent after one
+  /// succeeds, and that email is remembered for [verify].
+  Future<PhoneVerification> _requestLink(
+    IAuthRepository repository,
+    String phoneNumber,
+    int? token,
+  ) async {
+    Object? lastError;
+    for (final email in _pendingEmails) {
+      try {
+        final result = await repository.requestPhoneLink(
+          phoneNumber: phoneNumber,
+          email: email,
+          password: _pendingPassword!,
+          resendToken: token,
+        );
+        _pendingEmail = email;
+        return result;
+      } on AppException catch (error) {
+        lastError = error;
+        // A credential mismatch is worth retrying against the next account.
+        // Network and rate-limit failures are not.
+        if (error.message != AppStrings.invalidCredentials) rethrow;
+      }
+    }
+
+    if (_pendingEmails.length > 1) {
+      throw const AuthException(
+        'That password did not match the account linked to this number. '
+        'Sign in with your email address instead.',
+      );
+    }
+    throw lastError is AppException
+        ? lastError
+        : const AuthException(AppStrings.invalidCredentials);
   }
 
   /// Verifies the code with Firebase. Returns true when the session was
@@ -258,6 +308,7 @@ class PhoneAuthController extends Notifier<PhoneAuthState> {
   void _clearPending() {
     _pendingPassword = null;
     _pendingEmail = null;
+    _pendingEmails = const <String>[];
     _linkingExistingAccount = false;
   }
 

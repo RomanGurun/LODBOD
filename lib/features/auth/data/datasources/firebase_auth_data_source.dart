@@ -125,7 +125,8 @@ class FirebaseAuthDataSourceImpl implements FirebaseAuthDataSource {
         await credential.user!.sendEmailVerification();
         debugPrint('Firebase email verification dispatched successfully');
       } catch (error) {
-        debugPrint('Firebase sendEmailVerification during sign-up failed: $error');
+        debugPrint(
+            'Firebase sendEmailVerification during sign-up failed: $error');
         // Account is created; user can resend from the verification screen if this threw.
       }
       return _mapUser(_firebaseAuth.currentUser ?? credential.user!);

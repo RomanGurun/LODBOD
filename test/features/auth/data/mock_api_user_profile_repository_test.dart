@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lodbod/core/utils/phone_number.dart';
 import 'package:lodbod/features/auth/data/datasources/mock_api_user_profile_data_source.dart';
 import 'package:lodbod/features/auth/data/models/user_profile_model.dart';
 import 'package:lodbod/features/auth/data/remote/mock_api_user_profile_repository.dart';
@@ -16,6 +17,16 @@ class _FakeProfileDataSource extends MockApiUserProfileDataSource {
   @override
   Future<UserProfileModel?> fetchByFirebaseUid(String uid) async {
     return records[uid];
+  }
+
+  @override
+  Future<List<UserProfileModel>> fetchAllByPhoneNumber(
+      String phoneNumber) async {
+    final wanted = PhoneNumber.nationalDigits(phoneNumber);
+    return records.values
+        .where((record) =>
+            PhoneNumber.nationalDigits(record.phoneNumber) == wanted)
+        .toList();
   }
 
   @override
@@ -132,5 +143,49 @@ void main() {
 
     expect(dataSource.createCalls, 1);
     expect(dataSource.records['uid-2']?.fullName, 'New Shipper');
+  });
+
+  test('findAllByPhone returns every account sharing the number', () async {
+    UserProfileModel record(String id, String uid, String email, String date) {
+      return UserProfileModel.fromJson(<String, dynamic>{
+        'id': id,
+        'firebaseUid': uid,
+        'phoneNumber': '+9779840930039',
+        'fullName': email.split('@').first,
+        'email': email,
+        'role': 'shipper',
+        'isPhoneVerified': false,
+        'createdAt': date,
+        'updatedAt': date,
+      });
+    }
+
+    dataSource.records['uid-old'] = record(
+      'record-old',
+      'uid-old',
+      'older@gmail.com',
+      '2025-01-01T00:00:00.000Z',
+    );
+    dataSource.records['uid-new'] = record(
+      'record-new',
+      'uid-new',
+      'newer@gmail.com',
+      '2026-05-01T00:00:00.000Z',
+    );
+
+    final matches = await repository.findAllByPhone('9840930039');
+
+    expect(
+      matches.map((profile) => profile.email),
+      <String>['newer@gmail.com', 'older@gmail.com'],
+    );
+
+    // The cache must remember each record's own MockAPI id, otherwise a later
+    // save could patch the wrong duplicate.
+    await repository.saveProfile(
+      matches.last.copyWith(name: 'Older Renamed'),
+    );
+    expect(dataSource.updateCalls, 1);
+    expect(dataSource.updatedRecordIds.single, 'record-old');
   });
 }

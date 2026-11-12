@@ -48,6 +48,10 @@ class FakeAuthRepository implements IAuthRepository {
   /// Optional error message to throw on [signUp].
   String? signUpError;
 
+  /// When not empty, [requestPhoneLink] only accepts an email/password pair
+  /// listed here, mirroring Firebase's credential check.
+  final Map<String, String> emailPasswords = <String, String>{};
+
   /// Emails already registered with this repository.
   final Set<String> registeredEmails = <String>{'demo@lodbod.com'};
 
@@ -183,6 +187,10 @@ class FakeAuthRepository implements IAuthRepository {
     lastPhoneNumber = phoneNumber;
     linkedEmail = email;
     linkedPassword = password;
+    if (emailPasswords.isNotEmpty &&
+        emailPasswords[email.toLowerCase()] != password) {
+      throw const AuthException('Invalid email/phone or password');
+    }
     if (resendToken != null) {
       resendCount += 1;
       lastResendToken = resendToken;
