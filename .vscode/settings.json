@@ -1,3 +1,15 @@
 {
-    "cmake.sourceDirectory": "/Users/romangurung/Desktop/lodbod/linux"
+  "dart.flutterSdkPath": "/Users/romangurung/development/flutter",
+  "dart.flutterSdkPaths": [
+    "/Users/romangurung/development/flutter"
+  ],
+  "dart.env": {
+    "PATH": "/Users/romangurung/development/flutter/bin:/Users/romangurung/Library/Android/sdk/platform-tools:/Users/romangurung/Library/Android/sdk/emulator:${env:PATH}",
+    "ANDROID_HOME": "/Users/romangurung/Library/Android/sdk"
+  },
+  "terminal.integrated.env.osx": {
+    "PATH": "/Users/romangurung/development/flutter/bin:/Users/romangurung/Library/Android/sdk/platform-tools:/Users/romangurung/Library/Android/sdk/emulator:${env:PATH}",
+    "ANDROID_HOME": "/Users/romangurung/Library/Android/sdk"
+  },
+  "cmake.sourceDirectory": "/Users/romangurung/Desktop/lodbod/linux"
 }
