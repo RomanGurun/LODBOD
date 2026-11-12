@@ -49,3 +49,47 @@ app.*.map.json
 /firebase-debug.log
 /.firebase/
 android/.kotlin/
+
+# ---------------------------------------------------------------------------
+# Local / private notes — NOT for the public repository
+# ---------------------------------------------------------------------------
+# Personal interview cheat sheet
+/docs/CANDIDATE_INTERVIEW_PREP.md
+# Internal working notes
+/docs/TECHNICAL_NOTES.md
+# Original assignment brief (PDF/ODT) and reference screenshots
+/docs/LODBOD_Flutter_Developer_Technical_Assignment*
+/images/
+
+# ---------------------------------------------------------------------------
+# Secrets — never commit these
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.keystore
+*.jks
+key.properties
+serviceAccountKey.json
+service-account*.json
+
+# ---------------------------------------------------------------------------
+# OS / editor / tooling junk
+# ---------------------------------------------------------------------------
+**/.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+.flutter-plugins
+.packages
+/test_driver/*.json
+
+# Local build / packaging output
+*.apk
+*.aab
+*.ipa
+/app-release.apk
